@@ -119,6 +119,40 @@ curl -i https://api.deepseek.com/user/balance -H "Origin: https://localhost"
 - `settings.ts:23` → `apiKey: 'chat-demo:api-key'`
 - `settings.ts:122` `setApiKey()` 直接 `localStorage.setItem`
 
+### 2.9 用真实 ZIP 跑通「改造前」基线（P2 的对照物）
+
+样本：用户从 chat.deepseek.com 导出的真实包 `chatdata/deepseek_data-2026-11-17.zip`
+（1.9 MB → 解压 3.4 MB，压缩比 1.9x，**不含 zip bomb 特征**；`export_format_version: 3`）
+
+内容结构（只统计结构，未读取正文）：
+
+```
+条目 86 个：manifest.json + user.json + index.json + 77 个会话 JSON + 6 个附件
+消息角色：USER 177 条 / ASSISTANT 177 条
+单会话最大消息数：38，最短 2 条
+```
+
+用 `scripts/probe-import-baseline.py`（Playwright + 临时 profile，跑完即销毁）执行
+「上传 → 确认弹窗 → 确认导入」，实测：
+
+| 指标 | 导入前 | 导入后 |
+|---|---|---|
+| sessions | 0 | **77** |
+| sessionSummaries | 0 | **77** |
+| files（附件） | 0 | **6** |
+| sessionsStaging / filesStaging | 0 | 0（暂存已清空） |
+| 控制台错误 | — | **0** |
+
+结论：**上游现有导入逻辑能吃下这个真实包**，格式版本、附件、会话树都没问题。
+所以 P2 的工作不是"让导入能用"，而是"把覆盖改成分合并 + 去重"。
+
+改造前的关键行为（来自代码 + 实测）：
+- 确认弹窗文案就是 `historyImportConfirmDescription`：「上传的历史对话会覆盖当前所有对话记录」
+- 导入没有预览（选完文件直接确认），也没有"跳过 N 个重复"的概念
+- 导入后 `sessions` 恒等于包内会话数，本地已有会话会被 `commitStaging` 的 `clear()` 抹掉
+
+截图证据：`.verify/import-baseline/{1-file-selected,2-confirm-dialog,3-imported,4-session-list}.png`
+
 ## 3. 阻塞与未验证项（不许含糊）
 
 | 项 | 状态 | 说明 |
