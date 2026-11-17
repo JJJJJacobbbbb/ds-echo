@@ -12,10 +12,10 @@
 | Node.js | v24.15.0 | 计划书要求 22.12+，满足；但 24 是更新的主版本，至今未发现不兼容 |
 | pnpm | 11.21.0 | 满足 |
 | git | 2.54.0 | 满足 |
-| JDK | **未安装** | ❌ 阻塞 APK |
-| Android SDK | **未安装** | ❌ 阻塞 APK |
-| adb | **未安装** | ❌ 无真机连接 |
-| Android Studio | **未安装** | ❌ |
+| JDK | **21.0.13**（已装于 `D:\_tools\jdk21`） | 需 21，不是 17，见 2.8 |
+| Android SDK | **已装于 `D:\_tools\android-sdk`** | platform-tools 37、platforms 35/36、build-tools 35/36 |
+| adb | **已装**（platform-tools 37） | 尚无设备连接 |
+| Android Studio | 未安装 | 非必需，命令行可完整构建 |
 
 复现命令（在项目根目录执行）：
 
@@ -123,11 +123,39 @@ curl -i https://api.deepseek.com/user/balance -H "Origin: https://localhost"
 
 | 项 | 状态 | 说明 |
 |---|---|---|
-| Android APK 构建 | ❌ **阻塞** | 本机无 JDK / Android SDK / adb，无法产出 APK |
-| 真机 SSE 流式验证 | ❌ **阻塞** | 需要安卓设备；CORS 已排除，仍剩「WebView 是否缓冲 SSE」这一项未验证 |
+| Android APK 构建 | ✅ **通过** | `app-debug.apk` 5.99 MB，见 2.8 |
+| 真机安装与启动 | ❌ **阻塞** | `adb devices` 为空，等待手机以 USB 调试模式接入 |
+| 真机 SSE 流式验证 | ❌ **阻塞** | 同上；CORS 已排除，仍剩「WebView 是否缓冲 SSE」这一项未验证 |
 | 真机余额接口验证 | ❌ **阻塞** | 同上（CORS 已通过 curl 侧证） |
-| 真实 ZIP 导入回归 | ⚠️ 未做 | 需要一份用户从 chat.deepseek.com 导出的真实 ZIP |
-| 阅读原文代码地图 | 🔄 进行中 | 见 `docs/code-map.md` |
+| 真实 ZIP 导入回归 | ⚠️ 未做 | 用户已确认有一份真实 ZIP，待 P2 |
+| 代码地图 | ✅ 完成 | `docs/code-map.md`（117 个文件通读，路径全部做过存在性校验） |
+
+### 2.8 APK 已能产出（P0 第 5 条达成一半）
+
+| 步骤 | 命令 | 结果 |
+|---|---|---|
+| 网页构建 | `pnpm build` | dist/ 产出 |
+| 加 Android 工程 | `pnpm exec cap add android` | Capacitor 8.6.2，生成 `android/` |
+| 同步资源 | `pnpm exec cap sync android` | dist/ → `assets/public/`，155 个文件 |
+| 打 debug 包 | `gradlew assembleDebug` | **BUILD SUCCESSFUL**，5.99 MB |
+
+产物校验（用 `aapt2 dump badging` 与直接解包读取）：
+
+```
+package: name='com.dsecho.app' versionName='1.0' compileSdkVersion='36'
+minSdkVersion:'24'  targetSdkVersion:'36'
+application-label:'DS Echo'
+assets/public/index.html
+assets/public/static/js/main.9820cd3a.js (463.8 KB)
+assets/public/* 共 155 个文件
+```
+
+两个必须记住的构建约束（详见 `docs/android-build.md`）：
+1. **JDK 必须是 21**。用 17 会在 `compileDebugJavaWithJavac` 报 `无效的源发行版：21`（Capacitor 8 的源码级别是 21）。
+2. **工程路径含中文会被 AGP 拒绝**。已在 `android/gradle.properties` 加 `android.overridePathCheck=true` 放行。
+   本项目无 NDK，可接受；**一旦引入 NDK 必须迁到纯 ASCII 路径**。
+
+一键重建：`.\scripts\build-apk.ps1`（已实测，增量约 20s）。
 
 ## 4. 风险登记更新（相对计划书第 8 章）
 

@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">DS Echo</string>
+    <string name="title_activity_main">DS Echo</string>
+    <string name="package_name">com.dsecho.app</string>
+    <string name="custom_url_scheme">com.dsecho.app</string>
+</resources>
