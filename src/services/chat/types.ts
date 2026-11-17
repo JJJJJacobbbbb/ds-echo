@@ -119,6 +119,15 @@ export type Session = {
   messages: Message[]
   /** undefined 表示线性消息列表；null 表示空会话。 */
   rootMessageId?: string | null
+  /**
+   * 会话级长期记忆（markdown）。超出上下文被丢弃的早期轮次会压成要点存这里，
+   * 每次请求拼进 system prompt。用户可编辑——设定不能被模型擅自"总结"掉。
+   */
+  memory?: string
+  /** 已并入记忆的轮次数量；用于增量更新，避免重复总结同一段历史。 */
+  memoryCoveredRounds?: number
+  /** 记忆最后一次更新时间（毫秒）。 */
+  memoryUpdatedAt?: number
 }
 
 /** 会话列表元数据；消息只在打开会话时加载。 */

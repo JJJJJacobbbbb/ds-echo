@@ -68,7 +68,7 @@ describe('fitToBudget', () => {
     expect(result.dropped).toBe(0)
   })
 
-  it('默认预算就是 900K', () => {
-    expect(CONTEXT_INPUT_BUDGET).toBe(900_000)
+  it('默认预算与常量一致（改预算时只改常量，不用改测试）', () => {
+    expect(CONTEXT_INPUT_BUDGET).toBe(256_000)
   })
 })
