@@ -9,3 +9,6 @@ build/
 .env.*
 !.env.example
 tmp/
+
+# DS Echo 本地验证产物（截图、诊断报告），不入库
+.verify/
