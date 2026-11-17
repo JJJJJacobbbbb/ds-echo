@@ -1,0 +1,155 @@
+/*
+ * 首次连接向导的样式。
+ *
+ * 刻意与设置弹窗的排版保持同一套语言（圆角、字色变量、按钮权重），
+ * 让用户感觉"就在这个 App 里"，而不是被弹到一个网页。
+ * 颜色全部走全局 CSS 变量，深浅色自动跟随，不写死任何色值。
+ */
+
+.guide {
+  flex: 1;
+  min-width: 0;
+  overflow-y: auto;
+  display: flex;
+  justify-content: center;
+  padding: 24px 20px 32px;
+  background-color: var(--dsw-alias-bg-base);
+}
+
+.card {
+  width: 100%;
+  max-width: 480px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.title {
+  margin: 0;
+  font-size: 22px;
+  line-height: 30px;
+  font-weight: 600;
+  color: var(--dsw-alias-label-primary);
+}
+
+.subtitle {
+  margin: -12px 0 0;
+  font-size: 13px;
+  line-height: 20px;
+  color: var(--dsw-alias-label-secondary);
+}
+
+.step {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 16px;
+  border-radius: 16px;
+  background-color: transparent;
+  border: 1px solid var(--dsw-alias-border-l2);
+}
+
+.stepHead {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.stepIndex {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  flex: none;
+  border-radius: 50%;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--dsw-alias-label-primary);
+  background-color: var(--dsw-alias-bg-layer-2);
+}
+
+.stepTitle {
+  margin: 0;
+  font-size: 15px;
+  line-height: 22px;
+  font-weight: 500;
+  color: var(--dsw-alias-label-primary);
+}
+
+.stepBody {
+  margin: 0;
+  font-size: 13px;
+  line-height: 20px;
+  color: var(--dsw-alias-label-secondary);
+}
+
+.input {
+  box-sizing: border-box;
+  width: 100%;
+  height: 44px;
+  padding: 0 14px;
+  border: none;
+  border-radius: 12px;
+  outline: none;
+  font-size: 15px;
+  color: var(--dsw-alias-label-primary);
+  background-color: var(--dsw-specific-login-input);
+  border: 1px solid transparent;
+
+  &:focus {
+    border-color: var(--dsw-alias-button-primary-fill);
+  }
+}
+
+.primary,
+.outlined {
+  box-sizing: border-box;
+  width: 100%;
+  height: 44px;
+  border: none;
+  border-radius: 12px;
+  font-size: 15px;
+  font-weight: 500;
+  cursor: pointer;
+
+  &:disabled {
+    opacity: 0.45;
+    cursor: default;
+  }
+}
+
+.primary {
+  color: #fff;
+  background-color: var(--dsw-alias-button-primary-fill);
+}
+
+.outlined {
+  color: var(--dsw-alias-label-primary);
+  background-color: transparent;
+  border: 1px solid var(--dsw-alias-border-l2);
+}
+
+.error {
+  margin: 0;
+  font-size: 13px;
+  line-height: 20px;
+  color: var(--dsw-alias-label-error, #e5484d);
+}
+
+.footer {
+  display: flex;
+  justify-content: center;
+  padding-top: 4px;
+}
+
+.link {
+  border: none;
+  background: none;
+  padding: 6px;
+  font-size: 13px;
+  color: var(--dsw-alias-label-secondary);
+  text-decoration: underline;
+  cursor: pointer;
+}
+

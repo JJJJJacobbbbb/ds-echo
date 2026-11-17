@@ -33,6 +33,7 @@ import { Modal } from '../base/Modal.js'
 import { Select } from '../base/Select.js'
 import { showToast } from '../base/toastState.js'
 import { ApiKeyConfirm, ApiKeyField, useApiKeyEditor } from './ApiKeyField.js'
+import { AccountPanel } from './AccountPanel.js'
 import { closeSettings, useSettingsDialog, type SettingsSection } from './settingsDialogState.js'
 import styles from './Settings.module.css'
 
@@ -61,6 +62,8 @@ const SettingsContent = () => {
   const [section, setSection] = useState(() => useSettingsDialog.getState().section)
   // 切换分组不丢失正在输入的 API Key 与导入状态
   const apiKeyEditor = useApiKeyEditor()
+  /** 分组内容的滚动容器；切分组时要用它回到顶部 */
+  const contentRef = useRef<HTMLDivElement>(null)
   const historyImport = useHistoryImport()
   const historyDelete = useHistoryDelete()
   const replacingHistory = useChatStore((state) => state.importingHistory)
@@ -86,14 +89,19 @@ const SettingsContent = () => {
               role="tab"
               aria-selected={section === item.value}
               className={clsx(styles.navItem, section === item.value && styles.navItemActive)}
-              onClick={() => setSection(item.value)}
+              onClick={() => {
+                setSection(item.value)
+                // 切换分组时回到顶部：两个分组高度不同，保留上一次的滚动位置会把
+                // 新分组的第一行（例如账户余额的标题与按钮）滚出可视区。
+                contentRef.current?.scrollTo({ top: 0 })
+              }}
             >
               {item.icon}
               {t(item.label)}
             </button>
           ))}
         </div>
-        <div role="tabpanel" className={styles.content}>
+        <div role="tabpanel" className={styles.content} ref={contentRef}>
           {section === 'general' ? (
             <>
               <ThemeSetting />
@@ -103,6 +111,7 @@ const SettingsContent = () => {
             </>
           ) : (
             <>
+              <AccountPanel />
               <ApiKeyField editor={apiKeyEditor} />
               <ImportHistory historyImport={historyImport} disabled={historyBusy} />
               <ExportHistory disabled={historyBusy} />
@@ -557,3 +566,5 @@ const ExportHistory = ({ disabled }: { disabled: boolean }) => {
     />
   )
 }
+
+

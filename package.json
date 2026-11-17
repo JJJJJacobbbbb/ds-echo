@@ -9,7 +9,8 @@
     "dev": "rspack serve -c rspack.config.ts",
     "build": "cross-env NODE_ENV=production rspack build -c rspack.config.ts",
     "type": "tsc -p tsconfig.json",
-    "lint": "oxlint src rspack.config.ts",
+    "lint": "oxlint src tests rspack.config.ts",
+    "test": "vitest run",
     "format": "oxfmt --write ."
   },
   "dependencies": {
@@ -48,6 +49,7 @@
     "cross-env": "^10.1.0",
     "oxfmt": "0.48.0",
     "oxlint": "1.63.0",
-    "typescript": "7.0.2"
+    "typescript": "7.0.2",
+    "vitest": "^5.1.0"
   }
 }

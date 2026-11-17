@@ -122,6 +122,9 @@ services/api/types.ts（协议类型，纯声明）
 | `services/api/types.ts` (260) | 协议类型：请求体、内容块、流事件、错误体 |
 | `services/api/errors.ts` (116) | 状态码归类、可重试判定、附件失效与上传失败识别 |
 | `services/api/speech.ts` (65) | ASR `/v1/tools/asr`、TTS `/v1/tools/tts` |
+| `services/api/balance.ts` (79) | **P1 新增**：`GET /user/balance`，响应形状校验（形状不符报 protocol 错误，不静默返回 0） |
+| `services/account/balance.ts` (78) | **P1 新增**：余额状态机（idle/loading/ready/error）+ 防旧响应覆盖的请求序号 |
+| `services/external.ts` (61) | **P1 新增**：官方外链白名单 + `Browser.open` 跳转（建 Key、充值） |
 | `services/chat/store.ts` (1094) | **状态中枢**：会话 CRUD、发送、流式收尾、历史替换、缓存淘汰 |
 | `services/chat/db.ts` (251) | IndexedDB 全部读写 + 导入暂存 + 事务替换 |
 | `services/chat/types.ts` (128) | 本地数据模型：`Session` / `Message` / `FileAttachment` |

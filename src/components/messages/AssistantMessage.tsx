@@ -22,9 +22,9 @@ import {
   type MessageVersions,
   type SelectMessageVersion,
 } from './BranchSwitcher.js'
+import { OFFICIAL_URL, openOfficialPage } from '../../services/external.js'
 import styles from './AssistantMessage.module.css'
 
-const TOP_UP_URL = 'https://platform.deepseek.com/top_up'
 
 export const AssistantMessage = memo(function AssistantMessage({
   sessionId,
@@ -111,11 +111,19 @@ export const AssistantMessage = memo(function AssistantMessage({
             {notice.action === 'topUp' ? (
               <>
                 {' '}
+                {/*
+                  充值入口统一走 services/external.ts：
+                  - 有域名白名单，不会把用户带到仿冒页面
+                  - 在 Android 上用系统浏览器打开（target="_blank" 在 WebView 里行为不可控，
+                    会被当成内部跳转把聊天界面顶掉）
+                */}
                 <a
                   className={styles.noticeAction}
-                  href={TOP_UP_URL}
-                  target="_blank"
-                  rel="noreferrer"
+                  href={OFFICIAL_URL.topUp}
+                  onClick={(event) => {
+                    event.preventDefault()
+                    void openOfficialPage('topUp')
+                  }}
                 >
                   {t('topUp')}
                 </a>
@@ -176,3 +184,4 @@ export const AssistantMessage = memo(function AssistantMessage({
     </div>
   )
 })
+

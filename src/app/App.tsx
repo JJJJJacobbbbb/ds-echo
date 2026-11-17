@@ -14,8 +14,8 @@ import { closeSearchPanel } from '../components/search/searchPanelState.js'
 import { SessionView } from '../components/session/SessionView.js'
 import { MobileHeader } from '../components/session/MobileHeader.js'
 import { Welcome } from '../components/session/Welcome.js'
-import { ensureApiKey } from '../components/settings/settingsDialogState.js'
 import { SettingsDialog } from '../components/settings/SettingsDialog.js'
+import { SetupGuide } from '../components/onboarding/SetupGuide.js'
 import { Toast } from '../components/base/Toast.js'
 import { showToast } from '../components/base/toastState.js'
 import { onUploadNotice } from '../services/attachments.js'
@@ -69,9 +69,23 @@ export const App = () => {
 
   useEffect(() => {
     void initChat()
-    // 首次打开先在设置里输入 API Key
-    ensureApiKey()
   }, [])
+
+  const apiKey = useSettings((state) => state.apiKey)
+
+  // 没有 Key 时进连接向导，而不是直接弹整个设置对话框：
+  // 首次看到一堆「主题、语言、朗读音色、位置」对不懂 API 的用户是纯噪音。
+  if (!apiKey) {
+    return (
+      <>
+        <div ref={frameRef} className={styles.frame}>
+          <SetupGuide />
+        </div>
+        <SettingsDialog />
+        <Toast />
+      </>
+    )
+  }
 
   return (
     <>
