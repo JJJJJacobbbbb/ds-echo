@@ -53,6 +53,8 @@ const abortTransaction = (tx: { abort(): void }) => {
 }
 
 // 每个操作拿到连接后立即创建事务；IndexedDB 按创建顺序执行范围重叠的事务，读取总能看到之前发起的写入。
+// 库名 'chat-demo' 沿用上游：改名会让用户本地已有的全部会话"消失"（实际是读不到旧库）。
+// 要改必须配套一次性迁移（打开旧库 → 拷到新库 → 删旧库），否则不要动。
 const getDB = () =>
   (dbPromise ??= openDB<ChatDB>('chat-demo', DB_VERSION, {
     upgrade(db, _oldVersion, _newVersion, tx) {

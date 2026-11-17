@@ -19,6 +19,14 @@ type Settings = {
   siderCollapsed: boolean
 }
 
+/**
+ * localStorage 键名。
+ *
+ * 注意：前缀是 `chat-demo:`（上游名），**故意不改成 `dsecho:`**。
+ * 这些键里存着用户已有的 API Key 与偏好；一旦改名，升级后所有旧设置都会"丢失"
+ * （读不到旧键 = 回到默认值，Key 也要重输）。同理见 db.ts 里的 IndexedDB 名 'chat-demo'。
+ * 如果将来确实要改名，必须同时写一段一次性迁移：读旧键 → 写新键 → 删旧键。
+ */
 const KEYS = {
   apiKey: 'chat-demo:api-key',
   locale: 'chat-demo:locale',
