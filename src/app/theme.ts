@@ -1,4 +1,6 @@
 import { useSyncExternalStore } from 'react'
+import { Capacitor } from '@capacitor/core'
+import { StatusBar, Style } from '@capacitor/status-bar'
 import { useSettings, type ThemePreference } from '../services/settings.js'
 
 export type Theme = 'light' | 'dark'
@@ -52,11 +54,28 @@ const applyTheme = (theme: Theme) => {
 
 let appliedTheme: Theme | null = null
 
+/**
+ * 原生状态栏图标的明暗。
+ *
+ * Android 端 WebView 铺满全屏，状态栏背后就是页面背景色，所以图标必须跟着反色：
+ * 深色主题用浅色图标（Style.Dark），浅色主题用深色图标（Style.Light）。
+ * 失败不抛错：图标明暗只影响观感，不该因为插件不可用而中断主题切换。
+ */
+const syncNativeStatusBar = (theme: Theme) => {
+  if (!Capacitor.isNativePlatform()) {
+    return
+  }
+  StatusBar.setStyle({ style: theme === 'dark' ? Style.Dark : Style.Light }).catch(() => {
+    // WebView 之外的宿主环境（如桌面浏览器调试）没有该插件，忽略即可
+  })
+}
+
 const syncTheme = () => {
   const theme = resolveTheme(useSettings.getState().themePreference, getOsTheme())
   if (theme !== appliedTheme) {
     appliedTheme = theme
     applyTheme(theme)
+    syncNativeStatusBar(theme)
   }
 }
 

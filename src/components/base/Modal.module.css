@@ -9,6 +9,14 @@
   background-color: rgba(0, 0, 0, var(--overlay-opacity));
   backdrop-filter: blur(2px);
 
+  /*
+   * 遮罩本身仍然铺满全屏（背景变暗要盖住状态栏区域才自然），但内容要避开系统栏，
+   * 否则长屏手机上弹窗会被状态栏压住一截。见 global.css 里 --dsecho-safe-* 的说明。
+   */
+  box-sizing: border-box;
+  padding-top: var(--dsecho-safe-top);
+  padding-bottom: var(--dsecho-safe-bottom);
+
   [data-ds-dark-theme] & {
     --overlay-opacity: 0.6;
   }

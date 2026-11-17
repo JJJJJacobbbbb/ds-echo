@@ -1,6 +1,22 @@
 :root {
   --message-list-max-width: 840px;
   --message-list-padding-horizontal: 44px;
+
+  /*
+   * 移动端安全区域高度。
+   *
+   * Android 端 WebView 铺满全屏（见 MainActivity.java），系统栏区域由网页自己绘制，
+   * 内容必须主动避让。本机实测 WebView 上报：
+   *   env(safe-area-inset-top)    = 36px（状态栏 126px / dpr 3.5）
+   *   env(safe-area-inset-bottom) = 18px（导航栏 63px / dpr 3.5）
+   * 桌面浏览器为 0px，行为与改动前一致。
+   *
+   * 统一成变量是因为要用的地方不止一处：主容器 .frame、设置弹窗 .overlay、
+   * 移动端抽屉 .drawer 都是 fixed/absolute 定位，各自绕开彼此的 padding，
+   * 必须逐个补，不能只在一个地方留白。
+   */
+  --dsecho-safe-top: env(safe-area-inset-top, 0px);
+  --dsecho-safe-bottom: env(safe-area-inset-bottom, 0px);
 }
 
 @media (max-width: 1023px) {

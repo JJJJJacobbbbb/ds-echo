@@ -2,7 +2,9 @@
 <html lang="zh-CN">
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <!-- viewport-fit=cover：让页面铺到刘海/圆角区域，并启用 env(safe-area-inset-*)
+         （Android WebView 在 edge-to-edge 模式下会上报系统栏高度，本机实测 36px/18px） -->
+    <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
     <meta name="theme-color" content="#ffffff" />
     <title>DS Echo</title>
   </head>

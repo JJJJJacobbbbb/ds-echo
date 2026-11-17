@@ -58,5 +58,13 @@
     top: var(--app-viewport-top, 0px);
     bottom: auto;
     height: var(--app-viewport-height, 100dvh);
+    /*
+     * 安全区留白必须加在这一层：Android 端 WebView 铺满全屏（见 MainActivity.java），
+     * 而 .frame 是 position: fixed 铺满视口的容器，加在 #root 上的内边距对它无效。
+     * box-sizing 必须是 border-box，否则内边距会把高度撑出屏幕。
+     */
+    box-sizing: border-box;
+    padding-top: var(--dsecho-safe-top);
+    padding-bottom: var(--dsecho-safe-bottom);
   }
 }
