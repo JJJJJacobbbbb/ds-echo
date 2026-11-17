@@ -1,0 +1,291 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>DS Echo 图标工作台 · 三角网格</title>
+<!--
+  用途：手动挑选正三角形网格里的填充块，做出应用图标的主图形。
+  为什么是单文件、不依赖任何库：
+  - 这是给设计做决定用的临时工具，双击就能开，不需要 npm/构建/服务器
+  - 只用到 SVG 与 Canvas，浏览器原生能力足够
+  产出的 JSON 交给 scripts/generate-icons.py 渲染成 Android 资源。
+-->
+<style>
+  :root {
+    --blue: #3d7cff;
+    --ink: #1c2128;
+    --muted: #6b7280;
+    --line: #dfe4ec;
+    --panel: #ffffff;
+    --bg: #f4f6fa;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font: 14px/1.6 -apple-system, "Segoe UI", "Microsoft YaHei", sans-serif;
+    color: var(--ink);
+    background: var(--bg);
+  }
+  header {
+    padding: 18px 24px 10px;
+    display: flex;
+    align-items: baseline;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+  h1 { font-size: 18px; margin: 0; font-weight: 600; }
+  header .hint { color: var(--muted); font-size: 13px; }
+  main {
+    display: grid;
+    grid-template-columns: minmax(360px, 1fr) 300px;
+    gap: 18px;
+    padding: 8px 24px 28px;
+    align-items: start;
+  }
+  .panel {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 14px;
+  }
+  #stage { display: block; width: 100%; height: auto; cursor: crosshair; }
+  .cell { fill: transparent; stroke: var(--line); stroke-width: 1.2; }
+  .cell.on { fill: var(--blue); stroke: var(--blue); }
+  .cell:hover { stroke: var(--blue); stroke-width: 2; }
+
+  .toolbar { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
+  button {
+    font: inherit;
+    padding: 7px 12px;
+    border-radius: 9px;
+    border: 1px solid var(--line);
+    background: #fff;
+    color: var(--ink);
+    cursor: pointer;
+  }
+  button:hover { border-color: #b9c3d4; }
+  button.primary { background: var(--blue); border-color: var(--blue); color: #fff; }
+  label.field { display: inline-flex; align-items: center; gap: 6px; color: var(--muted); }
+  select, input[type="number"] {
+    font: inherit; padding: 6px 8px; border-radius: 8px;
+    border: 1px solid var(--line); background: #fff; color: var(--ink);
+  }
+  .side h2 { font-size: 13px; color: var(--muted); font-weight: 500; margin: 0 0 8px; }
+  .previews { display: flex; gap: 14px; align-items: flex-end; margin-bottom: 14px; }
+  .preview { text-align: center; }
+  .preview .box {
+    background: #fff; border: 1px solid var(--line);
+    display: grid; place-items: center; overflow: hidden;
+  }
+  .preview .box.round { border-radius: 50%; }
+  .preview .cap { font-size: 11px; color: var(--muted); margin-top: 4px; }
+  textarea {
+    width: 100%; min-height: 96px; font: 12px/1.5 ui-monospace, Consolas, monospace;
+    border: 1px solid var(--line); border-radius: 10px; padding: 8px; resize: vertical;
+    background: #fbfcfe; color: var(--ink);
+  }
+  .count { color: var(--muted); font-size: 12px; margin: 6px 0 0; }
+</style>
+</head>
+<body>
+<header>
+  <h1>DS Echo 图标工作台</h1>
+  <span class="hint">点三角形填色 / 再点取消。右侧小图就是桌面上看到的实际大小。</span>
+</header>
+
+<main>
+  <section class="panel">
+    <div class="toolbar">
+      <label class="field">行数
+        <select id="rows">
+          <option>4</option><option>5</option><option>6</option>
+          <option selected>7</option><option>8</option><option>9</option><option>10</option>
+        </select>
+      </label>
+      <button id="clear">清空</button>
+      <button id="random">随机</button>
+      <button id="copy" class="primary">复制选择</button>
+      <button id="png">下载 PNG 108px</button>
+    </div>
+    <svg id="stage" xmlns="http://www.w3.org/2000/svg"></svg>
+    <p class="count" id="count">已选 0 格</p>
+  </section>
+
+  <aside class="panel side">
+    <h2>尺寸预览</h2>
+    <div class="previews">
+      <div class="preview">
+        <div class="box" id="p48" style="width:48px;height:48px"></div>
+        <div class="cap">48px</div>
+      </div>
+      <div class="preview">
+        <div class="box" id="p96" style="width:96px;height:96px"></div>
+        <div class="cap">96px</div>
+      </div>
+      <div class="preview">
+        <div class="box round" id="p192" style="width:120px;height:120px"></div>
+        <div class="cap">圆形遮罩</div>
+      </div>
+    </div>
+
+    <h2>把结果发给我</h2>
+    <p class="count">点「复制选择」后直接粘到对话里即可；也可以手动全选这段文字。</p>
+    <textarea id="out" spellcheck="false" readonly placeholder="点击格子后，这里会显示 JSON"></textarea>
+  </aside>
+</main>
+
+<script>
+(() => {
+  const BLUE = '#3d7cff';
+  const S = 100;                       // 内部坐标系边长，导出时等比缩放
+  const SVG_NS = 'http://www.w3.org/2000/svg';
+
+  const stage = document.getElementById('stage');
+  const rowsSel = document.getElementById('rows');
+  const countEl = document.getElementById('count');
+  const outEl = document.getElementById('out');
+
+  /** 已选中的格：key = `${row}-${col}-${orient}` */
+  const chosen = new Set();
+  let cells = {};      // key -> { pts, points }
+
+  /** 生成塔尖朝上的正三角网格，整体居中在 100×100 内 */
+  function buildGrid(rows) {
+    const side = 96 / rows;
+    const h = side * Math.sqrt(3) / 2;
+    const totalH = rows * h;
+    const yTop = (S - totalH) / 2;
+    const map = {};
+    for (let i = 0; i < rows; i++) {
+      const ups = i + 1;
+      const xLeft = (S - ups * side) / 2;
+      const yt = yTop + i * h;
+      const yb = yt + h;
+      for (let j = 0; j < ups; j++) {
+        const xb = xLeft + j * side;
+        map[`${i}-${j}-up`] = [[xb, yb], [xb + side, yb], [xb + side / 2, yt]];
+        if (j < ups - 1) {
+          map[`${i}-${j}-down`] = [[xb + side / 2, yt], [xb + side * 1.5, yt], [xb + side, yb]];
+        }
+      }
+    }
+    return map;
+  }
+
+  function render() {
+    const rows = Number(rowsSel.value);
+    cells = buildGrid(rows);
+    // 行数变化后，旧选择可能越界，直接清掉
+    for (const key of [...chosen]) {
+      if (!cells[key]) chosen.delete(key);
+    }
+
+    stage.setAttribute('viewBox', `0 0 ${S} ${S}`);
+    stage.innerHTML = '';
+    for (const [key, pts] of Object.entries(cells)) {
+      const poly = document.createElementNS(SVG_NS, 'polygon');
+      poly.setAttribute('points', pts.map(([x, y]) => `${x},${y}`).join(' '));
+      poly.setAttribute('class', 'cell' + (chosen.has(key) ? ' on' : ''));
+      poly.dataset.key = key;
+      poly.addEventListener('click', () => {
+        chosen.has(key) ? chosen.delete(key) : chosen.add(key);
+        poly.setAttribute('class', 'cell' + (chosen.has(key) ? ' on' : ''));
+        sync();
+      });
+      stage.appendChild(poly);
+    }
+    sync();
+  }
+
+  /** 把当前选择画成一个小 SVG（用于多尺寸预览） */
+  function iconSvg(size) {
+    const parts = [];
+    for (const key of chosen) {
+      const pts = cells[key];
+      if (!pts) continue;
+      parts.push(`<polygon points="${pts.map(([x, y]) => `${x},${y}`).join(' ')}" fill="${BLUE}"/>`);
+    }
+    return `<svg xmlns="${SVG_NS}" viewBox="0 0 ${S} ${S}" width="${size}" height="${size}">${parts.join('')}</svg>`;
+  }
+
+  function sync() {
+    document.getElementById('p48').innerHTML = iconSvg(48);
+    document.getElementById('p96').innerHTML = iconSvg(96);
+    document.getElementById('p192').innerHTML = iconSvg(120);
+    countEl.textContent = `已选 ${chosen.size} 格`;
+    const rows = Number(rowsSel.value);
+    outEl.value = JSON.stringify({
+      rows,
+      cells: [...chosen].map((k) => k.split('-').map((v, i) => (i < 2 ? Number(v) : v))),
+    });
+  }
+
+  document.getElementById('clear').onclick = () => {
+    chosen.clear();
+    render();
+  };
+
+  document.getElementById('random').onclick = () => {
+    const keys = Object.keys(cells);
+    chosen.clear();
+    const target = Math.round(keys.length * (0.28 + Math.random() * 0.12));
+    // 从随机起点向外长，保证连通
+    const seed = keys[Math.floor(Math.random() * keys.length)];
+    chosen.add(seed);
+    const xs = (k) => {
+      const [r, c, o] = k.split('-');
+      return [Number(r), Number(c), o];
+    };
+    while (chosen.size < target) {
+      const pool = [];
+      for (const k of chosen) {
+        const [r, c, o] = xs(k);
+        // 相邻关系：同一行左右、上下行
+        const cand = [`${r}-${c + 1}-${o}`, `${r}-${c - 1}-${o}`,
+                      `${r - 1}-${c}-up`, `${r - 1}-${c}-down`,
+                      `${r + 1}-${c}-up`, `${r + 1}-${c}-down`];
+        for (const kk of cand) if (cells[kk] && !chosen.has(kk)) pool.push(kk);
+      }
+      if (!pool.length) break;
+      chosen.add(pool[Math.floor(Math.random() * pool.length)]);
+    }
+    render();
+  };
+
+  document.getElementById('copy').onclick = async () => {
+    sync();
+    try {
+      await navigator.clipboard.writeText(outEl.value);
+      document.getElementById('copy').textContent = '已复制';
+      setTimeout(() => (document.getElementById('copy').textContent = '复制选择'), 1200);
+    } catch {
+      outEl.select();
+      document.execCommand('copy');
+    }
+  };
+
+  document.getElementById('png').onclick = () => {
+    const svg = iconSvg(108);
+    const img = new Image();
+    img.onload = () => {
+      const c = document.createElement('canvas');
+      c.width = c.height = 432;
+      const ctx = c.getContext('2d');
+      ctx.fillStyle = '#fff';
+      ctx.fillRect(0, 0, 432, 432);
+      ctx.drawImage(img, 0, 0, 432, 432);
+      const a = document.createElement('a');
+      a.href = c.toDataURL('image/png');
+      a.download = `dsecho-icon-${rowsSel.value}rows.png`;
+      a.click();
+    };
+    img.src = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svg)));
+  };
+
+  rowsSel.onchange = render;
+  render();
+})();
+</script>
+</body>
+</html>
