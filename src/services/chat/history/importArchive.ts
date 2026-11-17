@@ -9,6 +9,7 @@ import {
   isZipFile,
   readArchive,
   readEntry,
+  summarizeArchive,
   skipEntry,
   type ArchiveEntry,
 } from './zipReader.js'
@@ -51,6 +52,12 @@ const imageType = (bytes: Uint8Array): string => {
   return ''
 }
 
+/** 导入进度：已完成字节 / 总字节（按解压后体积计） */
+export type ImportProgress = { doneBytes: number; totalBytes: number }
+
+/** 上报进度的最小间隔，避免每个条目都触发一次 React 重渲染 */
+const PROGRESS_STEP_BYTES = 256 * 1024
+
 const readJson = async (entry: ArchiveEntry): Promise<unknown> => {
   const text = await (await readEntry(entry)).text()
   try {
@@ -64,7 +71,7 @@ const readJson = async (entry: ArchiveEntry): Promise<unknown> => {
  * 检查 ZIP 格式、首个 manifest 条目及格式版本。
  * 校验失败时保留正在生成的回答和现有暂存数据。
  */
-export const checkArchiveFormat = async (file: File): Promise<void> => {
+export const checkArchiveFormat = async (file: Blob): Promise<void> => {
   if (!(await isZipFile(file))) {
     fail('backupUnrecognized')
   }
@@ -88,7 +95,7 @@ export const checkArchiveFormat = async (file: File): Promise<void> => {
  * 会话读完立即暂存，只保留图片路径映射；图片全部读完后逐会话回填 MIME，不改变图片身份。
  * 写入导入暂存存储；调用方负责先清空暂存，成功后替换正式数据，失败时清理暂存。
  */
-export const importArchive = async (file: File): Promise<void> => {
+export const importArchive = async (file: Blob, onProgress?: (progress: ImportProgress) => void): Promise<void> => {
   if (!(await isZipFile(file))) {
     fail('backupUnrecognized')
   }
@@ -100,6 +107,10 @@ export const importArchive = async (file: File): Promise<void> => {
   /** 防护计数：条目数与解压后总字节 */
   let entryCount = 0
   let totalBytes = 0
+  /** 进度：已处理字节与总量（总量取归档摘要，拿不到时按 0 处理即不报百分比） */
+  let doneBytes = 0
+  let progressTotal = 0
+  let lastReported = 0
   let index: SessionIndexEntry[] | undefined
   let currentSessionId: string | undefined
 
@@ -115,7 +126,18 @@ export const importArchive = async (file: File): Promise<void> => {
   }
 
   try {
+    // 先取总量用于进度百分比；内存 Blob 上这次解析很便宜
+    if (onProgress) {
+      progressTotal = (await summarizeArchive(file)).totalBytes
+      onProgress({ doneBytes: 0, totalBytes: progressTotal })
+    }
     for await (const entry of readArchive(file)) {
+      doneBytes += entry.size
+      // 每推进 256KB 上报一次，避免每个条目都触发一次渲染
+      if (onProgress && doneBytes - lastReported >= PROGRESS_STEP_BYTES) {
+        lastReported = doneBytes
+        onProgress({ doneBytes, totalBytes: progressTotal })
+      }
       // 逐条累计并卡上限：一旦超限立刻失败，此时正式数据还没被碰过
       entryCount += 1
       totalBytes += entry.size
@@ -182,3 +204,5 @@ export const importArchive = async (file: File): Promise<void> => {
   }
   await db.updateStagingFileTypes(stored)
 }
+
+

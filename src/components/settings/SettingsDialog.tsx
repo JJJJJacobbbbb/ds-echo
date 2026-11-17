@@ -80,7 +80,8 @@ const SettingsContent = () => {
         className={styles.dialog}
         mainClassName={styles.dialogMain}
         onClose={() => {
-          if (!historyDelete.busy) {
+          // 导入/删除进行中禁止关闭：中途退出会让人以为失败了（实测用户就是这么退的）
+          if (!historyBusy) {
             closeSettings()
           }
         }}
@@ -476,6 +477,8 @@ const useHistoryImport = () => {
   const [preview, setPreview] = useState<ImportPreview | null>(null)
   const [busy, setBusy] = useState(false)
   const [status, setStatus] = useState<Status>(null)
+  /** 读取进度 0~100；null 表示没有在进行 */
+  const [percent, setPercent] = useState<number | null>(null)
   const importing = useRef(false)
 
   const select = async (file: File) => {
@@ -485,13 +488,19 @@ const useHistoryImport = () => {
     importing.current = true
     setBusy(true)
     setStatus(null)
+    setPercent(0)
     try {
-      setPreview(await stageHistoryImport(file))
+      setPreview(
+        await stageHistoryImport(file, ({ doneBytes, totalBytes }) => {
+          setPercent(totalBytes > 0 ? Math.min(99, Math.round((doneBytes / totalBytes) * 100)) : null)
+        })
+      )
     } catch {
       setStatus({ key: 'historyImportFailed', error: true })
     } finally {
       importing.current = false
       setBusy(false)
+      setPercent(null)
     }
   }
 
@@ -526,7 +535,7 @@ const useHistoryImport = () => {
     }
   }
 
-  return { preview, busy, status, select, cancel, confirm }
+  return { preview, busy, status, percent, select, cancel, confirm }
 }
 
 /** 导入 = 覆盖：用选中文件替换本地全部会话与附件。 */
@@ -544,7 +553,14 @@ const ImportHistory = ({
     <SettingCell
       label={t('historyImport')}
       description={t('historyImportDescription')}
-      status={historyImport.status}
+      status={
+        historyImport.percent !== null
+          ? {
+              key: 'historyImportReading',
+              params: { percent: historyImport.percent },
+            }
+          : historyImport.status
+      }
       action={
         <>
           <Button

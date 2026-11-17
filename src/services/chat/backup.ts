@@ -47,16 +47,33 @@ export const exportHistory = (): Promise<{ name: string; blob: Blob }> =>
  */
 export type ImportPreview = db.StagingPreview & { fingerprint: string }
 
-export const stageHistoryImport = (file: File): Promise<ImportPreview> =>
+export const stageHistoryImport = (
+  file: File,
+  onProgress?: (progress: { doneBytes: number; totalBytes: number }) => void
+): Promise<ImportPreview> =>
   enqueueBackup(async () => {
-    const [{ checkArchiveFormat, importArchive }, { fingerprintFile }] = await Promise.all([
-      import('./history/importArchive.js'),
-      import('./history/archiveFingerprint.js'),
-    ])
-    await checkArchiveFormat(file)
-    const fingerprint = await fingerprintFile(file)
+    const [{ checkArchiveFormat, importArchive }, { sha256Hex, MAX_FINGERPRINT_BYTES }, zip] =
+      await Promise.all([
+        import('./history/importArchive.js'),
+        import('./history/archiveFingerprint.js'),
+        import('./history/zipReader.js'),
+      ])
+    if (file.size > MAX_FINGERPRINT_BYTES) {
+      throw new Error(
+        `归档文件过大（${Math.round(file.size / 1024 / 1024)} MB），超过 ${MAX_FINGERPRINT_BYTES / 1024 / 1024} MB 上限`
+      )
+    }
+    // 关键性能修复：先把整个文件读进内存（一次），之后的 ZIP 解析全部在内存里做。
+    // Android 上 File 背后是 content:// URI，每读一次都可能是一次跨进程调用，
+    // ZIP 解析要读几百次 → 真机上能卡几十秒且毫无反馈。
+    const buffer = await file.arrayBuffer()
+    const memoryBlob = zip.materializeArchive
+      ? await zip.materializeArchive(new Blob([buffer]))
+      : new Blob([buffer])
+    await checkArchiveFormat(memoryBlob)
+    const fingerprint = await sha256Hex(buffer)
     await db.clearStaging()
-    await importArchive(file)
+    await importArchive(memoryBlob, onProgress)
     const preview = await db.previewStaging()
     return { ...preview, fingerprint }
   })

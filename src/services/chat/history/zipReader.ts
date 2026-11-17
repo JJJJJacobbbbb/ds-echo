@@ -17,7 +17,7 @@ const invalid = (): never => {
 }
 
 /** 本地文件头签名 PK\x03\x04，用于在解析前区分 ZIP 与其他文件。 */
-export const isZipFile = async (file: File) => {
+export const isZipFile = async (file: Blob) => {
   const bytes = new Uint8Array(await file.slice(0, 4).arrayBuffer())
   return bytes.length === 4 && bytes.every((byte, index) => byte === [0x50, 0x4b, 3, 4][index])
 }
@@ -32,7 +32,7 @@ const crcTable = Uint32Array.from({ length: 256 }, (_, value) => {
   return crc >>> 0
 })
 
-const readBytes = async (file: File, start: number, length: number) => {
+const readBytes = async (file: Blob, start: number, length: number) => {
   if (start < 0 || length < 0 || start + length > file.size) {
     invalid()
   }
@@ -85,7 +85,7 @@ type Entry = {
   offset: number
 }
 
-const readDirectory = async (file: File): Promise<{ entries: Entry[]; offset: number }> => {
+const readDirectory = async (file: Blob): Promise<{ entries: Entry[]; offset: number }> => {
   if (file.size < 22) {
     invalid()
   }
@@ -177,7 +177,7 @@ const readDirectory = async (file: File): Promise<{ entries: Entry[]; offset: nu
   return { entries: entries.sort((a, b) => a.offset - b.offset), offset }
 }
 
-const readEntryOffset = async (file: File, entry: Entry, boundary: number) => {
+const readEntryOffset = async (file: Blob, entry: Entry, boundary: number) => {
   if (entry.offset + 30 > boundary) {
     invalid()
   }
@@ -238,7 +238,30 @@ export type ArchiveEntry = {
  * 按条目在文件中的物理顺序逐条、逐块解压，跳过目录条目。
  * 调用方必须消费完当前条目的数据，再请求下一个条目。
  */
-export async function* readArchive(file: File): AsyncGenerator<ArchiveEntry> {
+/**
+ * 把归档整个读进内存，返回内存 Blob。
+ *
+ * 为什么必须这么做（真机实测的坑）：
+ * Android 上 <input type=file> 给的 File 背后是 content:// URI，
+ * 每次 `file.slice(a, b).arrayBuffer()` 都可能触发一次跨进程读取。
+ * ZIP 解析要读中央目录里每个条目的头/文件名/扩展字段，再读每个条目的数据，
+ * 85 个条目就是三百多次 IPC——真机上能卡到用户以为没反应。
+ * 先在内存里放一份（大小已在上层限制），后续所有 slice 都是内存操作。
+ */
+export const materializeArchive = (file: Blob): Promise<Blob> =>
+  file.arrayBuffer().then((buffer) => new Blob([buffer], { type: file.type }))
+
+/** 归档摘要：条目数与解压后总字节，用于导入进度百分比。 */
+export const summarizeArchive = async (
+  file: Blob
+): Promise<{ entryCount: number; totalBytes: number }> => {
+  const directory = await readDirectory(file)
+  return {
+    entryCount: directory.entries.length,
+    totalBytes: directory.entries.reduce((sum, entry) => sum + entry.size, 0),
+  }
+}
+export async function* readArchive(file: Blob): AsyncGenerator<ArchiveEntry> {
   const directory = await readDirectory(file)
   for (const [index, entry] of directory.entries.entries()) {
     const boundary = directory.entries[index + 1]?.offset ?? directory.offset
@@ -314,3 +337,5 @@ export const skipEntry = async (entry: ArchiveEntry): Promise<void> => {
     // 丢弃数据。
   }
 }
+
+
