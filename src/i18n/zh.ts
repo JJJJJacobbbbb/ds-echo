@@ -132,10 +132,15 @@ export const zh = {
   balanceErrorOther: '查询余额失败：{message}',
   accountNotConnected: '尚未连接 API Key',
   historyImport: '导入历史对话',
-  historyImportConfirm: '确认导入',
+  historyImportConfirm: '导入',
   historyImportConfirmTitle: '确认导入历史对话？',
-  historyImportConfirmDescription: '上传的历史对话会覆盖当前所有对话记录，是否确认导入？',
-  historyImportDescription: '导入历史对话会覆盖全部本地对话和附件，支持 DeepSeek 导出的 ZIP 文件。',
+  historyPreviewSummary:
+    '将导入 {fresh} 个会话，跳过 {skipped} 个本地已有的；含附件 {files} 个、消息 {messages} 条。已有会话不会被覆盖或删除。',
+  historyPreviewNothingNew: '这份归档里的 {skipped} 个会话本地都已存在，没有需要导入的新会话。',
+  historyImportDescription:
+    '导入时把历史对话并入本地，已有记录不会被删除；同一会话不会重复导入。支持 DeepSeek 导出的 ZIP 文件。',
+  historyMerged: '已导入 {count} 个会话，跳过 {skipped} 个已存在的',
+  historyMergedNone: '没有新会话可导入，已跳过 {skipped} 个',
   historyImportedOne: '已导入 1 个对话',
   historyImported: '已导入 {count} 个对话',
   historyImportFailed:
@@ -196,3 +201,4 @@ export const zh = {
   settingsLocaleZhCN: '简体中文',
   settingsLocaleEnUS: 'English',
 } as const
+

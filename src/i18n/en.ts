@@ -142,10 +142,14 @@ export const en = {
   historyImport: 'Import chat history',
   historyImportConfirm: 'Import',
   historyImportConfirmTitle: 'Import chat history?',
-  historyImportConfirmDescription:
-    'The uploaded chat history will replace all your current chats. Import anyway?',
+  historyPreviewSummary:
+    'Will import {fresh} chats and skip {skipped} that already exist locally; {files} attachments and {messages} messages. Existing chats are never overwritten or deleted.',
+  historyPreviewNothingNew:
+    'All {skipped} chats in this archive already exist locally. Nothing new to import.',
   historyImportDescription:
-    'Importing chat history replaces all local chats and attachments. Supports ZIP files exported from DeepSeek.',
+    'Importing merges history into this device. Existing chats are never deleted and the same chat is not imported twice. Supports ZIP files exported from DeepSeek.',
+  historyMerged: 'Imported {count} chats, skipped {skipped} existing',
+  historyMergedNone: 'No new chats to import, skipped {skipped}',
   historyImportedOne: 'Imported 1 chat',
   historyImported: 'Imported {count} chats',
   historyImportFailed:
@@ -208,3 +212,4 @@ export const en = {
   settingsLocaleZhCN: 'Simplified Chinese',
   settingsLocaleEnUS: 'English',
 } satisfies Record<keyof typeof zh, string>
+

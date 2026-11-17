@@ -447,6 +447,39 @@ export const newChat = () => {
   }
 }
 
+/**
+ * 合并导入：把归档里的会话并入本地，已有会话保持不动。
+ *
+ * 与 replaceHistory 的区别（这是 P2 的核心）：
+ * - 不取消正在生成的回答，也不清空草稿
+ * - 不重置当前打开的会话
+ * - 不 clear() 数据库，只追加
+ *
+ * 仍然要先把待写操作冲刷完（waitForIdle），否则正在保存的会话可能与合并事务交错。
+ */
+export const mergeHistory = async (write: () => Promise<db.MergeResult>): Promise<db.MergeResult> => {
+  if (get().importingHistory) {
+    throw new Error('History import is already in progress')
+  }
+  set({ importingHistory: true })
+  try {
+    await Promise.all(deletionTasks)
+    await waitForIdle()
+    // 这里**不能** clearStaging：暂存区是导入第一步（stageHistoryImport）写好的，
+    // 清掉就等于把用户已经确认的归档内容删了，合并会拿到 0 条。
+    const result = await write()
+    // 重新读一遍摘要：合并后既有原有会话，也有新并入的
+    const stored = await db.loadSessionSummaries()
+    const storedIds = new Set(stored.map((summary) => summary.id))
+    // 保存失败、只在内存里的会话不能因为这次重读而消失
+    const memoryOnly = get().sessions.filter((summary) => !storedIds.has(summary.id))
+    set({ ready: true, initError: false, sessions: sortSessions([...stored, ...memoryOnly]) })
+    return result
+  } finally {
+    set({ importingHistory: false })
+  }
+}
+
 export const selectSession = (id: string) => {
   if (!get().importingHistory && get().sessions.some((session) => session.id === id)) {
     touchSession(id)

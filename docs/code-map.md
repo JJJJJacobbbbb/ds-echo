@@ -125,8 +125,10 @@ services/api/types.ts（协议类型，纯声明）
 | `services/api/balance.ts` (79) | **P1 新增**：`GET /user/balance`，响应形状校验（形状不符报 protocol 错误，不静默返回 0） |
 | `services/account/balance.ts` (78) | **P1 新增**：余额状态机（idle/loading/ready/error）+ 防旧响应覆盖的请求序号 |
 | `services/external.ts` (61) | **P1 新增**：官方外链白名单 + `Browser.open` 跳转（建 Key、充值） |
+| `services/chat/mergePlan.ts` (52) | **P2 新增**：合并导入去重规则（纯函数，tests/merge-plan.test.ts 覆盖） |
+| `services/chat/history/archiveFingerprint.ts` (33) | **P2 新增**：归档 SHA-256 指纹 + 64MB 体积上限 |
 | `services/chat/store.ts` (1094) | **状态中枢**：会话 CRUD、发送、流式收尾、历史替换、缓存淘汰 |
-| `services/chat/db.ts` (251) | IndexedDB 全部读写 + 导入暂存 + 事务替换 |
+| `services/chat/db.ts` (~390) | IndexedDB 全部读写 + 导入暂存 + `mergeStaging`（合并）/ `commitStaging`（覆盖，仅删除全部用） |
 | `services/chat/types.ts` (128) | 本地数据模型：`Session` / `Message` / `FileAttachment` |
 | `services/chat/reply.ts` (347) | 流事件合并、收尾、消息 → 请求体转换 |
 | `services/chat/branches.ts` (117) | 消息树：当前路径、追加分支、切换版本 |
@@ -318,7 +320,7 @@ services/api/types.ts（协议类型，纯声明）
 
 | 我想改… | 去这个文件 | 关键函数/行号 |
 |---|---|---|
-| 数据库名与版本 | `services/chat/db.ts` | 5（`DB_VERSION = 11`）；56–76（`openDB('chat-demo', 11)`） |
+| 数据库名与版本 | `services/chat/db.ts` | 5（`DB_VERSION = 12`）；56–76（`openDB('chat-demo', 12)`） |
 | 表结构与索引 | `services/chat/db.ts` | 16–32（类型）；58–71（建表/建索引） |
 | 写会话（会话 + 摘要 + 附件同一事务） | `services/chat/db.ts` | `saveSession()` 84–102 |
 | 导入暂存的清空/写入/提交 | `services/chat/db.ts` | `clearStaging()` 161–168；`addStagingSession()` 170–172；`commitStaging()` 210–245 |
@@ -380,7 +382,7 @@ services/api/types.ts（协议类型，纯声明）
 
 ## 4. IndexedDB 结构
 
-数据库：`chat-demo`，版本 `11`（`services/chat/db.ts:5` 常量，`db.ts:57` 打开）。
+数据库：`chat-demo`，版本 `12`（P2 起新增 `importRegistry` 表）（`services/chat/db.ts:5` 常量，`db.ts:57` 打开）。
 `upgrade()`（58–71）只负责**建缺失的表和索引，不迁移任何旧数据**（59 行注释明说）。
 
 | object store | keyPath | 索引 | 值类型 | 谁在写 |
@@ -401,7 +403,7 @@ services/api/types.ts（协议类型，纯声明）
 
 以下每条都是代码里**实际存在**的事实，附文件:行号。
 
-1. **导入 = 整体覆盖，事务里先 `clear()` 全部表**。`services/chat/db.ts:216–245` 的 `commitStaging()` 对 `sessions` 与 `files` 先 `clear()`（219）再复制，`sessionSummaries` 也 `clear()`（221）；入口在 `services/chat/backup.ts:46–51`，期间 `services/chat/store.ts:392` 会中止所有生成。**没有「合并导入」这条路**，Android 上误点即全丢。
+1. **导入 = 整体覆盖，事务里先 `clear()` 全部表**。`services/chat/db.ts:216–245` 的 `commitStaging()` 对 `sessions` 与 `files` 先 `clear()`（219）再复制，`sessionSummaries` 也 `clear()`（221）；入口在 `services/chat/backup.ts:46–51`，期间 `services/chat/store.ts:392` 会中止所有生成。~~没有「合并导入」这条路~~ → **P2 已修复**：导入改走 `stageHistoryImport` → 预览 → `mergeStaging`（不 clear），见 `docs/p2-merge-import.md`。
 2. **API Key 明文存 localStorage**。`services/settings.ts:10`（注释自认）、`:22–31`（键名）、`:122–125`（原样 `setItem`）。没有 Keystore / 加密 / 生物识别。
 3. **鉴权直接由前端发往上游**。`services/api/client.ts:13–17`（`API_ORIGIN` + `/anthropic/v1` + `files-api-2025-04-14`）、`:85–90`（`x-api-key`）、`:149`（`POST /messages`）。Key 一定在客户端里，无法隐藏；WebView 里还要求该域名的 CORS 放行。
 4. **只认 `export_format_version === 3`**。`services/chat/history/schema.ts:230–238`：比 3 新报 `backupNewerVersion`，不等于 3 报 `backupInvalidVersion`——旧版导出文件一律导入失败。
@@ -413,7 +415,7 @@ services/api/types.ts（协议类型，纯声明）
 10. **剪贴板依赖 `navigator.clipboard` + `execCommand` 兜底**。`utils/clipboard.ts:3–22`（`:22` 是已废弃的 `execCommand`）。
 11. **远端文件从不删除**。`services/api/client.ts:126–131` 有 `deleteFile()`，但全仓库**没有任何调用点**（grep 仅命中定义处）；`services/chat/store.ts:480–483` 的注释明确写「远端文件不删」。服务端配额只会涨不会落。
 12. **模型/人设/安全审核是硬编码常量**。`services/chat/store.ts:36`（`MODEL = 'deepseek-flash'`）、`:38`（中文 system prompt）、`:42`（`SAFETY_CHECK = { level: 'high' }`，注释称固定开启）。多模型或关审核都要改这里。
-13. **数据库名与版本写死且不做迁移**。`services/chat/db.ts:57` 的 `'chat-demo'`、`:5` 的 `11`、`:59` 注释「不迁移旧消息」。Android 版想复用/迁移旧数据得另写。
+13. **数据库名与版本写死且不做迁移**。`services/chat/db.ts` 的 `'chat-demo'`、`DB_VERSION = 12`、注释「不迁移旧消息」。Android 版想复用/迁移旧数据得另写。
 14. **流式刷新绑定浏览器帧与页面可见性**。`services/chat/store.ts:1031`（`requestAnimationFrame`）、`:1028` 与 `:244`（`document.visibilityState`）。Android 后台/息屏行为不同，落盘时机要重做（否则杀进程即丢最后一段回答）。
 15. **导出在内存里生成完整 Blob**。`services/chat/history/exportArchive.ts:49`、`services/chat/history/zipWriter.ts:113`（`new Blob(chunks)`），没有流式写盘；`zipWriter.ts:44/56/61` 还会在超过 ZIP32 上限时直接抛 `ArchiveLimitError`。
 16. **没有账号体系、没有余额查询**。唯一「余额」概念是 402 状态码归类（`services/api/errors.ts:21–23`）；Key 靠用户手工粘贴（`components/settings/ApiKeyField.tsx:42–62`），没有登录、刷新 token、多账号切换。
@@ -426,3 +428,4 @@ services/api/types.ts（协议类型，纯声明）
 1. **几乎所有会话写操作都要经过 `services/chat/store.ts`**。想加功能，先在那里加一个导出函数，再让组件调用它——不要从组件直接摸 `db.ts`。
 2. **行号会漂**。这份地图对应 commit `5d5dd75`；每节都写了函数名，用「函数名 + 近似行号」定位，别只靠数字。
 3. **`store.ts`（1094 行）与 `SettingsDialog.tsx`（559 行）已经超过单文件 400 行红线**，`ReplyArea.tsx`(391) 接近。真要动这三个文件里的逻辑，先想清楚拆成什么再改。
+

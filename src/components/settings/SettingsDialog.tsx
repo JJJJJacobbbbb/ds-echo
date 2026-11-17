@@ -13,7 +13,10 @@ import {
   BackupError,
   clearHistory,
   exportHistory,
-  importHistory,
+  cancelHistoryImport,
+  commitHistoryImport,
+  stageHistoryImport,
+  type ImportPreview,
 } from '../../services/chat/backup.js'
 import { useIsMobile } from '../../app/viewport.js'
 import { useChatStore } from '../../services/chat/store.js'
@@ -135,7 +138,7 @@ const SettingsContent = () => {
           )}
         </div>
       </Modal>
-      {historyImport.file ? <ImportConfirm historyImport={historyImport} /> : null}
+      {historyImport.preview ? <ImportConfirm historyImport={historyImport} /> : null}
       {historyDelete.opened ? <DeleteAllConfirm historyDelete={historyDelete} /> : null}
     </>
   )
@@ -323,13 +326,18 @@ const TtsVoiceSetting = () => {
   )
 }
 
-/** 覆盖导入的二次确认，叠在设置弹窗上 */
+/** 导入前的预览确认：先说清会导入多少、跳过多少，再让用户决定 */
 const ImportConfirm = ({
   historyImport,
 }: {
   historyImport: ReturnType<typeof useHistoryImport>
 }) => {
   const t = useTranslate()
+  const preview = historyImport.preview
+  if (!preview) {
+    return null
+  }
+  const fresh = preview.totalSessions - preview.duplicateSessions
   return (
     <Modal
       title={t('historyImportConfirmTitle')}
@@ -340,13 +348,27 @@ const ImportConfirm = ({
           <Button variant="outlined" size="m" autoFocus onClick={historyImport.cancel}>
             {t('cancel')}
           </Button>
-          <Button variant="dangerOutlined" size="m" onClick={() => void historyImport.confirm()}>
+          <Button
+            variant="primary"
+            size="m"
+            disabled={fresh === 0 || historyImport.busy}
+            onClick={() => void historyImport.confirm()}
+          >
             {t('historyImportConfirm')}
           </Button>
         </>
       }
     >
-      <div className={styles.importConfirmText}>{t('historyImportConfirmDescription')}</div>
+      <div className={styles.importConfirmText}>
+        {fresh > 0
+          ? t('historyPreviewSummary', {
+              fresh,
+              skipped: preview.duplicateSessions,
+              files: preview.fileCount,
+              messages: preview.messageCount,
+            })
+          : t('historyPreviewNothingNew', { skipped: preview.duplicateSessions })}
+      </div>
     </Modal>
   )
 }
@@ -445,24 +467,25 @@ const SettingCell = ({
   )
 }
 
-/** 选文件后先提示覆盖；确认后才检查文件并执行导入，任何错误都提示导入失败。 */
+/**
+ * 导入历史对话：先校验并写入暂存区（不碰现有数据）→ 拿到预览 → 用户确认
+ * → 单事务合并进正式数据。取消时直接丢弃暂存。
+ */
 const useHistoryImport = () => {
-  const [file, setFile] = useState<File | null>(null)
+  const [preview, setPreview] = useState<ImportPreview | null>(null)
   const [busy, setBusy] = useState(false)
   const [status, setStatus] = useState<Status>(null)
   const importing = useRef(false)
 
-  const confirm = async () => {
-    if (!file || importing.current) {
+  const select = async (file: File) => {
+    if (importing.current) {
       return
     }
     importing.current = true
-    setFile(null)
     setBusy(true)
     setStatus(null)
     try {
-      const count = await importHistory(file)
-      setStatus({ key: count === 1 ? 'historyImportedOne' : 'historyImported', params: { count } })
+      setPreview(await stageHistoryImport(file))
     } catch {
       setStatus({ key: 'historyImportFailed', error: true })
     } finally {
@@ -471,7 +494,38 @@ const useHistoryImport = () => {
     }
   }
 
-  return { file, busy, status, select: setFile, cancel: () => setFile(null), confirm }
+  const cancel = () => {
+    if (preview) {
+      void cancelHistoryImport()
+    }
+    setPreview(null)
+  }
+
+  const confirm = async () => {
+    if (!preview || importing.current) {
+      return
+    }
+    importing.current = true
+    setBusy(true)
+    setStatus(null)
+    try {
+      const result = await commitHistoryImport(preview.fingerprint)
+      const count = result.imported.length
+      setStatus(
+        count > 0
+          ? { key: 'historyMerged', params: { count, skipped: result.skipped } }
+          : { key: 'historyMergedNone', params: { skipped: result.skipped } }
+      )
+    } catch {
+      setStatus({ key: 'historyImportFailed', error: true })
+    } finally {
+      setPreview(null)
+      importing.current = false
+      setBusy(false)
+    }
+  }
+
+  return { preview, busy, status, select, cancel, confirm }
 }
 
 /** 导入 = 覆盖：用选中文件替换本地全部会话与附件。 */
@@ -566,5 +620,6 @@ const ExportHistory = ({ disabled }: { disabled: boolean }) => {
     />
   )
 }
+
 
 

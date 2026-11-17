@@ -1,6 +1,6 @@
 import { formatDate } from '../../utils/format.js'
 import * as db from './db.js'
-import { replaceHistory, useChatStore } from './store.js'
+import { mergeHistory, replaceHistory, useChatStore } from './store.js'
 import type { Session } from './types.js'
 
 export { BackupError } from './history/errors.js'
@@ -40,8 +40,37 @@ export const exportHistory = (): Promise<{ name: string; blob: Blob }> =>
   })
 
 /**
- * 确认覆盖后调用：先检查 ZIP 格式与版本，校验失败时保留正在生成的回答；
- * 通过后从 ZIP 流式写入暂存，成功才替换原有会话与图片原件。返回导入的会话数。
+ * 导入第一步：校验 + 算指纹 + 把归档写进暂存区，返回预览信息。
+ *
+ * 这一步**不碰用户的任何现有数据**（只写 sessionsStaging / filesStaging），
+ * 所以可以安全地先给用户看"会导入多少、跳过多少"，再让他决定。
+ */
+export type ImportPreview = db.StagingPreview & { fingerprint: string }
+
+export const stageHistoryImport = (file: File): Promise<ImportPreview> =>
+  enqueueBackup(async () => {
+    const [{ checkArchiveFormat, importArchive }, { fingerprintFile }] = await Promise.all([
+      import('./history/importArchive.js'),
+      import('./history/archiveFingerprint.js'),
+    ])
+    await checkArchiveFormat(file)
+    const fingerprint = await fingerprintFile(file)
+    await db.clearStaging()
+    await importArchive(file)
+    const preview = await db.previewStaging()
+    return { ...preview, fingerprint }
+  })
+
+/** 导入第二步：把暂存区合并进正式数据（单事务，失败整体回滚） */
+export const commitHistoryImport = (fingerprint: string): Promise<db.MergeResult> =>
+  enqueueBackup(() => mergeHistory(() => db.mergeStaging({ fingerprint })))
+
+/** 用户取消预览：丢掉暂存，现有数据本来就没被动过 */
+export const cancelHistoryImport = (): Promise<void> => enqueueBackup(() => db.clearStaging())
+
+/**
+ * 旧的整体替换导入。**已不再用于文件导入**（导入已改成合并），
+ * 保留给「删除所有对话」复用同一套原子替换语义。
  */
 export const importHistory = (file: File): Promise<number> =>
   enqueueBackup(async () => {
@@ -55,3 +84,4 @@ export const clearHistory = (): Promise<void> =>
   enqueueBackup(async () => {
     await replaceHistory(async () => {})
   })
+

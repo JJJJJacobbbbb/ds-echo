@@ -13,6 +13,16 @@ import {
   type ArchiveEntry,
 } from './zipReader.js'
 
+/**
+ * 归档防护上限：恶意或异常的 ZIP 可能把 WebView 的内存直接打爆。
+ * 这三个数字对应计划书 P2 的「限制总体积、条目数、膨胀比例」要求。
+ */
+const MAX_ENTRIES = 20_000
+/** 解压后总体积上限（512 MB） */
+const MAX_UNCOMPRESSED_BYTES = 512 * 1024 * 1024
+/** 解压/压缩 比值上限，正常聊天归档约 2~5 倍 */
+const MAX_EXPANSION_RATIO = 200
+
 /** 从原件字节补充图片 MIME；无法识别时为空字符串，图片身份仍由归档的 is_image 决定。 */
 const imageType = (bytes: Uint8Array): string => {
   const startsWith = (...prefix: number[]) => prefix.every((byte, index) => bytes[index] === byte)
@@ -87,6 +97,9 @@ export const importArchive = async (file: File): Promise<void> => {
   /** 已保存的原件：文件 ID → MIME。同一图片出现在多个会话目录时只保存一次。 */
   const stored = new Map<string, string>()
   let manifest = false
+  /** 防护计数：条目数与解压后总字节 */
+  let entryCount = 0
+  let totalBytes = 0
   let index: SessionIndexEntry[] | undefined
   let currentSessionId: string | undefined
 
@@ -103,6 +116,18 @@ export const importArchive = async (file: File): Promise<void> => {
 
   try {
     for await (const entry of readArchive(file)) {
+      // 逐条累计并卡上限：一旦超限立刻失败，此时正式数据还没被碰过
+      entryCount += 1
+      totalBytes += entry.size
+      if (entryCount > MAX_ENTRIES) {
+        fail('backupIncomplete')
+      }
+      if (totalBytes > MAX_UNCOMPRESSED_BYTES) {
+        fail('backupIncomplete')
+      }
+      if (file.size > 0 && totalBytes / file.size > MAX_EXPANSION_RATIO) {
+        fail('backupIncomplete')
+      }
       const { path } = entry
       const sessionId = parseSessionPath(path)
       if (!manifest) {
