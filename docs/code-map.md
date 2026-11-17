@@ -127,6 +127,7 @@ services/api/types.ts（协议类型，纯声明）
 | `services/external.ts` (61) | **P1 新增**：官方外链白名单 + `Browser.open` 跳转（建 Key、充值） |
 | `services/chat/mergePlan.ts` (52) | **P2 新增**：合并导入去重规则（纯函数，tests/merge-plan.test.ts 覆盖） |
 | `services/chat/history/archiveFingerprint.ts` (33) | **P2 新增**：归档 SHA-256 指纹 + 64MB 体积上限 |
+| `services/fileSave.ts` (78) | **P3 新增**：原生存文件 + 系统分享；浏览器兜底下载 |
 | `services/chat/store.ts` (1094) | **状态中枢**：会话 CRUD、发送、流式收尾、历史替换、缓存淘汰 |
 | `services/chat/db.ts` (~390) | IndexedDB 全部读写 + 导入暂存 + `mergeStaging`（合并）/ `commitStaging`（覆盖，仅删除全部用） |
 | `services/chat/types.ts` (128) | 本地数据模型：`Session` / `Message` / `FileAttachment` |

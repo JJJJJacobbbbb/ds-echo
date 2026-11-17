@@ -35,6 +35,7 @@ import { Button } from '../base/Button.js'
 import { Modal } from '../base/Modal.js'
 import { Select } from '../base/Select.js'
 import { showToast } from '../base/toastState.js'
+import { saveFileForUser } from '../../services/fileSave.js'
 import { ApiKeyConfirm, ApiKeyField, useApiKeyEditor } from './ApiKeyField.js'
 import { AccountPanel } from './AccountPanel.js'
 import { closeSettings, useSettingsDialog, type SettingsSection } from './settingsDialogState.js'
@@ -587,12 +588,9 @@ const ExportHistory = ({ disabled }: { disabled: boolean }) => {
     setStatus(null)
     try {
       const { name, blob } = await exportHistory()
-      const url = URL.createObjectURL(blob)
-      const link = document.createElement('a')
-      link.href = url
-      link.download = name
-      link.click()
-      setTimeout(() => URL.revokeObjectURL(url), 10_000)
+      // 不能再用 <a download>：在 Android WebView 里它静默失效（实测点了什么都不发生，也不报错）
+      const outcome = await saveFileForUser(blob, name)
+      setStatus(outcome.kind === 'cancelled' ? null : { key: 'historyExported' })
     } catch (error) {
       setStatus(errorStatus('historyExportFailed', error))
     } finally {
@@ -620,6 +618,7 @@ const ExportHistory = ({ disabled }: { disabled: boolean }) => {
     />
   )
 }
+
 
 
 
