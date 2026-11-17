@@ -58,6 +58,15 @@ export const AssistantMessage = memo(function AssistantMessage({
   const summaryEntry = `${message.id}-summary`
   return (
     <div className={styles.message}>
+      {/* 上下文被裁剪时如实告知：不假装模型记得全部历史 */}
+      {message.contextTrim ? (
+        <div className={styles.contextTrim} role="note">
+          {t('contextTrimmed', {
+            rounds: message.contextTrim.droppedRounds,
+            tokens: message.contextTrim.estimatedTokens.toLocaleString(),
+          })}
+        </div>
+      ) : null}
       {refused ? null : (
         <ReplyArea
           message={message}

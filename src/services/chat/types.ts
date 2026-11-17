@@ -83,6 +83,11 @@ export type AssistantMessage = MessageBranch & {
   search?: boolean
   /** 本轮请求的系统信息快照；各回答版本独立保存，续写沿用。历史消息中缺省的快照保持为空。 */
   latestReminder?: string
+  /**
+   * 本轮请求因超出模型窗口而丢弃的早期轮次（缺省表示没有裁剪）。
+   * 界面据此如实提示"已省略前面 N 轮"，不假装模型记得全部历史。
+   */
+  contextTrim?: { droppedRounds: number; estimatedTokens: number }
   /** 是否允许作为续写前缀；仍需满足回复状态与内容限制。 */
   prefix: boolean
   status: ReplyStatus

@@ -14,6 +14,7 @@ import type {
   ReplyStatus,
   UserMessage,
 } from './types.js'
+import { estimateTokens, fitToBudget } from './contextBudget.js'
 
 /**
  * 文件按 Files API 的 file_id（附件的 serverId）引用：图片用 image 块，其余用 document 块。
@@ -300,13 +301,26 @@ export const getContextRounds = (history: Message[]): [UserMessage, AssistantMes
  * 把会话转成请求的 messages：只保留「提问 + 有回答的回复」成对的轮次，最后接上本轮提问。
  * 失败或没有回答的轮次不进上下文。续写时末尾再带上本轮 assistant。
  */
+/** 一次请求的 messages 与上下文裁剪信息 */
+export type RequestMessages = {
+  messages: MessageParam[]
+  /** 因超出模型窗口被丢弃的最早轮次数量（0 表示全部保留） */
+  droppedRounds: number
+  /** 保留部分的估算 token 数 */
+  estimatedTokens: number
+}
+
+/** 一轮历史里会进入请求的文字量（提问正文 + 回答正文） */
+const roundText = ([user, reply]: [UserMessage, AssistantMessage]): string =>
+  user.content + reply.blocks.map((block) => (block.type === 'text' ? block.text : '')).join('')
+
 export const toRequestMessages = (
   history: Message[],
   question: UserMessage,
   prefix?: AssistantMessage,
   thinking = prefix?.thinking ?? false,
   latestReminder?: string
-): MessageParam[] => {
+): RequestMessages => {
   const messages: MessageParam[] = []
   let previousReminder: string | undefined
   const appendReminder = (reminder: string | undefined) => {
@@ -316,7 +330,9 @@ export const toRequestMessages = (
       previousReminder = reminder
     }
   }
-  for (const [user, reply] of getContextRounds(history)) {
+  // 先按预算裁剪：超出窗口时丢最早的轮次，避免服务端直接报 context length exceeded
+  const fitted = fitToBudget(getContextRounds(history), (round) => estimateTokens(roundText(round)))
+  for (const [user, reply] of fitted.kept) {
     // 历史提问没有文字、附件也都没有 serverId 时，提问为空，连同回答一起省略。
     if (!user.content && toFileBlocks(user.files).length === 0) {
       continue
@@ -339,7 +355,11 @@ export const toRequestMessages = (
       messages.push(assistant)
     }
   }
-  return messages
+  return {
+    messages,
+    droppedRounds: fitted.dropped,
+    estimatedTokens: fitted.estimatedTokens + estimateTokens(question.content),
+  }
 }
 
 /** 思考用时（秒），至少 1 秒 */

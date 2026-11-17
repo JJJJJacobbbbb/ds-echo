@@ -140,6 +140,7 @@ export const en = {
   balanceErrorOther: 'Failed to check balance: {message}',
   accountNotConnected: 'No API Key connected',
   secretsStorageLabel: 'Key storage',
+  contextTrimmed: 'Older {rounds} rounds were omitted to fit the model window (~{tokens} tokens sent).',
   secretsBackendKeystore: 'System secure storage (Keystore)',
   secretsBackendWeb: 'Browser localStorage (debug only)',
   historyImport: 'Import chat history',

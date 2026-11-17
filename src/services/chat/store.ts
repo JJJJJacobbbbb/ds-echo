@@ -1022,13 +1022,26 @@ const streamReply = async (sessionId: string, initial: AssistantMessage, request
         reply = { ...reply, latestReminder }
         updateReply(sessionId, reply)
         persist(sessionId)
-        const messages = toRequestMessages(
+        const requestMessages = toRequestMessages(
           prepared.history,
           prepared.question,
           prepared.prefix,
           initial.thinking ?? false,
           latestReminder
         )
+        const { messages } = requestMessages
+        // 上下文被裁剪时把事实记在回复上，界面如实展示"看不到前面多少轮"
+        if (requestMessages.droppedRounds > 0) {
+          reply = {
+            ...reply,
+            contextTrim: {
+              droppedRounds: requestMessages.droppedRounds,
+              estimatedTokens: requestMessages.estimatedTokens,
+            },
+          }
+          updateReply(sessionId, reply)
+          persist(sessionId)
+        }
         const events = streamMessage(
           useSettings.getState().apiKey ?? '',
           {

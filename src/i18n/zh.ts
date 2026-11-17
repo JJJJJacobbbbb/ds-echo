@@ -132,6 +132,7 @@ export const zh = {
   balanceErrorOther: '查询余额失败：{message}',
   accountNotConnected: '尚未连接 API Key',
   secretsStorageLabel: '密钥存储',
+  contextTrimmed: '已省略前面 {rounds} 轮历史，本次请求约 {tokens} token；模型看不到被省略的部分。',
   secretsBackendKeystore: '系统安全存储（Keystore）',
   secretsBackendWeb: '浏览器 localStorage（仅调试）',
   historyImport: '导入历史对话',
