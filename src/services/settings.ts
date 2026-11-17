@@ -1,6 +1,8 @@
 import { create } from 'zustand'
 import type { TtsVoice } from './api/speech.js'
 import { normalizeLocation, type UserLocation } from './location.js'
+import { migrateApiKey } from './secureKeyMigration.js'
+import { readSecret, removeSecret, secretsBackend, writeSecret } from './secureKey.js'
 
 export type Locale = 'zh-CN' | 'en-US'
 
@@ -9,7 +11,10 @@ export type ThemePreference = 'light' | 'dark' | 'system'
 
 /** 本机设置，存 localStorage：API Key、语言、主题、位置、朗读音色、深度思考与智能搜索开关、侧边栏收起状态 */
 type Settings = {
+  /** API Key 只存在于内存 + 系统安全存储；这里不是持久化来源 */
   apiKey: string | null
+  /** 首次启动时密钥从安全存储加载完成之前为 false，界面据此避免闪一下连接向导 */
+  credentialsReady: boolean
   locale: Locale
   themePreference: ThemePreference
   location: UserLocation | null
@@ -96,7 +101,9 @@ const initialThemePreference = (): ThemePreference => {
 const initialTtsVoice = (): TtsVoice => (read(KEYS.ttsVoice) === 'tide' ? 'tide' : 'stella')
 
 export const useSettings = create<Settings>(() => ({
-  apiKey: read(KEYS.apiKey),
+  // 初始为空：Key 由 hydrateCredentials() 从安全存储异步加载（见下）
+  apiKey: null,
+  credentialsReady: false,
   locale: initialLocale(),
   location: initialLocation(),
   themePreference: initialThemePreference(),
@@ -127,9 +134,55 @@ export const setTtsVoice = (ttsVoice: TtsVoice) => {
   useSettings.setState({ ttsVoice })
 }
 
+/**
+ * 保存/清除 API Key。
+ *
+ * 原生环境：写入 Android Keystore，并确保 localStorage 里不残留明文。
+ * 浏览器调试：退回 localStorage（界面会标注"仅调试"）。
+ * 写安全存储失败时只记日志、不静默降级成明文——宁可这次不持久化，也不回到老做法。
+ */
 export const setApiKey = (apiKey: string | null) => {
-  write(KEYS.apiKey, apiKey)
   useSettings.setState({ apiKey })
+  const backend = secretsBackend()
+  void (async () => {
+    try {
+      if (apiKey) {
+        await writeSecret(apiKey)
+        if (backend === 'keystore') {
+          write(KEYS.apiKey, null)
+        }
+      } else {
+        await removeSecret()
+        write(KEYS.apiKey, null)
+      }
+    } catch (error) {
+      // eslint-disable-next-line no-console
+      console.error('[credentials] 保存 API Key 到安全存储失败', error)
+    }
+  })()
+}
+
+/**
+ * 启动时加载 Key：优先安全存储；若存在旧版明文则先迁移再清理。
+ * 见 secureKeyMigration.ts——那边保证「写成功并读回一致后才删明文」。
+ */
+export const hydrateCredentials = async (): Promise<void> => {
+  try {
+    const result = await migrateApiKey({
+      readLegacy: () => read(KEYS.apiKey),
+      clearLegacy: () => write(KEYS.apiKey, null),
+      readSecure: readSecret,
+      writeSecure: writeSecret,
+    })
+    useSettings.setState({ apiKey: result.apiKey })
+  } catch (error) {
+    // 迁移失败：保留明文，下次启动重试；本次仍可用旧值工作
+    // eslint-disable-next-line no-console
+    console.error('[credentials] API Key 迁移失败，保留明文待重试', error)
+    useSettings.setState({ apiKey: read(KEYS.apiKey) })
+  } finally {
+    useSettings.setState({ credentialsReady: true })
+  }
 }
 
 export const setThinking = (thinking: boolean) => {

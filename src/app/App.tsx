@@ -1,6 +1,6 @@
 import { useEffect } from 'react'
 import { useTranslate } from '../i18n/index.js'
-import { useSettings } from '../services/settings.js'
+import { hydrateCredentials, useSettings } from '../services/settings.js'
 import { useIsMobile, useMobileViewport, usePreventPageScroll } from './viewport.js'
 import {
   bindChatPersistence,
@@ -69,9 +69,25 @@ export const App = () => {
 
   useEffect(() => {
     void initChat()
+    // 先做「明文→安全存储」的迁移与加载；完成前不渲染，避免闪一下连接向导
+    void hydrateCredentials()
   }, [])
 
   const apiKey = useSettings((state) => state.apiKey)
+  const credentialsReady = useSettings((state) => state.credentialsReady)
+
+  if (!credentialsReady) {
+    return (
+      <>
+        <div ref={frameRef} className={styles.frame}>
+          <div className={styles.loadingState} role="status" aria-live="polite">
+            {t('sessionLoading')}
+          </div>
+        </div>
+        <Toast />
+      </>
+    )
+  }
 
   // 没有 Key 时进连接向导，而不是直接弹整个设置对话框：
   // 首次看到一堆「主题、语言、朗读音色、位置」对不懂 API 的用户是纯噪音。

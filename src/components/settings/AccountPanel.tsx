@@ -13,6 +13,7 @@ import { useTranslate } from '../../i18n/index.js'
 import { useSettings } from '../../services/settings.js'
 import { useBalance } from '../../services/account/balance.js'
 import { openOfficialPage } from '../../services/external.js'
+import { backendLabelKey, secretsBackend } from '../../services/secureKey.js'
 import styles from './AccountPanel.module.css'
 
 /** 币种符号；未知币种直接显示代码，不猜 */
@@ -138,6 +139,10 @@ export const AccountPanel = () => {
 
           <div className={styles.muted}>
             {updatedAt ? t('balanceUpdatedAt', { time: formatTime(updatedAt) }) : t('balanceNever')}
+          </div>
+          {/* 明确告诉用户 Key 存在哪：换到 Keystore 后不该只是"我们自己知道" */}
+          <div className={styles.muted}>
+            {t('secretsStorageLabel')}：{t(backendLabelKey(secretsBackend()))}
           </div>
         </>
       )}
