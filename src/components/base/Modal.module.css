@@ -10,12 +10,13 @@
   backdrop-filter: blur(2px);
 
   /*
-   * 遮罩本身仍然铺满全屏（背景变暗要盖住状态栏区域才自然），但内容要避开系统栏，
-   * 否则长屏手机上弹窗会被状态栏压住一截。见 global.css 里 --dsecho-safe-* 的说明。
+   * 只避让顶部：底部安全区不能加在遮罩上。
+   * 设置弹窗是「底部面板」样式（圆角 24px 24px 0 0），本应贴到屏幕底部；
+   * 一旦在遮罩底部留 18px，面板会被顶起，下面那条露出半透明遮罩，看起来就是一条灰边。
+   * 底部避让改由面板自己的 padding-bottom 承担（见 Settings.module.css 的 .dialog）。
    */
   box-sizing: border-box;
   padding-top: var(--dsecho-safe-top);
-  padding-bottom: var(--dsecho-safe-bottom);
 
   [data-ds-dark-theme] & {
     --overlay-opacity: 0.6;

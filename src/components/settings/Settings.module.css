@@ -2,8 +2,13 @@
   --modal-header-gap: 7px;
   width: 760px;
   height: 500px;
-  max-height: calc(100vh - 32px);
-  padding: 19px 24px 22px;
+  /*
+   * 底部安全区加在面板内部（而不是遮罩上）：
+   * 这个弹窗是底部面板样式（圆角 24px 24px 0 0），面板本身要贴到屏幕底部，
+   * 否则下方会露出遮罩形成一条灰边。留白放在内边距里，内容就不会被手势条压住。
+   */
+  max-height: calc(100dvh - var(--dsecho-safe-top) - 16px);
+  padding: 19px 24px calc(22px + var(--dsecho-safe-bottom));
 }
 
 .dialogMain {
