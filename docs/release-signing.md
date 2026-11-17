@@ -82,3 +82,21 @@ debug 包和 release 包的签名不同，Android 不允许直接覆盖安装，
 - 没有 `versionCode` 自动从 `package.json` 生成，需要手动改
 - 没有 CI：现在全靠本地脚本
 - 未开启 R8 混淆（`minifyEnabled false`）；开之前要先确认 Capacitor 插件的 keep 规则
+
+## 8. 真机验收（release 包实际装上后）
+
+| 项 | 结果 |
+|---|---|
+| 安装 | 卸载 debug 后 `adb install app-release.apk` 成功，正常启动 |
+| 首屏 | 显示连接向导（全新数据，符合预期） |
+| **WebView 调试端口** | `adb forward ... webview_devtools_remote_<pid>` 后访问 `http://localhost:9223/json/version` — **无响应**（debug 包此前是可访问的）。这是"能给别人装"的关键前提，已实证 |
+| `run-as` 读应用数据 | 被系统拒绝（`package not debuggable`），说明确实不可调试 |
+| 功能可用 | 设置里余额正常刷新（¥6.27 @22:00），说明 Key 与网络链路在 release 包下正常 |
+
+### 关于"卸载会丢数据"的实测
+
+本次卸载 debug 后安装 release，应用数据**确实没有保留**（抽屉里 0 条会话）。
+`android:allowBackup="true"` 并没有在这个机型上触发自动恢复——
+所以文档第 6 节的"先导出再卸载"流程是必需的，不能指望系统备份兜底。
+
+备份文件已推到手机 `Download/dsecho-backup.zip`（3.35 MB，77 会话 / 6 附件，ZIP 完整性 OK）。
