@@ -38,19 +38,37 @@
   header .hint { color: var(--muted); font-size: 13px; }
   main {
     display: grid;
-    grid-template-columns: minmax(360px, 1fr) 300px;
+    grid-template-columns: minmax(0, 1fr) 300px;
     gap: 18px;
-    padding: 8px 24px 28px;
+    padding: 8px 20px 20px;
     align-items: start;
   }
+  /* 专注模式：收起侧栏，画布铺满整个窗口 */
+  body.focus main { grid-template-columns: 1fr; }
+  body.focus aside { display: none; }
+  body.focus #stage { width: min(100%, calc(100vh - 130px)); }
   .panel {
     background: var(--panel);
     border: 1px solid var(--line);
     border-radius: 14px;
     padding: 14px;
   }
-  #stage { display: block; width: 100%; height: auto; cursor: crosshair; }
-  .cell { fill: transparent; stroke: var(--line); stroke-width: 1.2; }
+  /*
+   * 画布尺寸 = 「一屏能整块放下」的最小边 * 缩放倍数。
+   * 正方形本身受限：想让三角形更大就必然要滚动，所以把决定权交给缩放滑杆。
+   */
+  .stageWrap { display: grid; place-items: center; overflow: auto; }
+  #stage {
+    display: block;
+    cursor: crosshair;
+    width: calc(min(100%, 100vh - 150px) * var(--zoom, 1));
+    aspect-ratio: 1 / 1;
+  }
+  .zoom { display: inline-flex; align-items: center; gap: 8px; color: var(--muted); }
+  .zoom input[type="range"] { width: 130px; accent-color: var(--blue); }
+  .zoom output { min-width: 44px; font-variant-numeric: tabular-nums; }
+  /* non-scaling-stroke：放大画布时网格线保持 1.2px，不会变成粗块 */
+  .cell { fill: transparent; stroke: var(--line); stroke-width: 1.2; vector-effect: non-scaling-stroke; }
   .cell.on { fill: var(--blue); stroke: var(--blue); }
   .cell:hover { stroke: var(--blue); stroke-width: 2; }
 
@@ -107,8 +125,15 @@
       <button id="random">随机</button>
       <button id="copy" class="primary">复制选择</button>
       <button id="png">下载 PNG 108px</button>
+      <button id="focus">满屏画布</button>
+      <label class="zoom">缩放
+        <input id="zoom" type="range" min="0.8" max="2" step="0.1" value="1" />
+        <output id="zoomOut">1.0×</output>
+      </label>
     </div>
-    <svg id="stage" xmlns="http://www.w3.org/2000/svg"></svg>
+    <div class="stageWrap">
+      <svg id="stage" xmlns="http://www.w3.org/2000/svg"></svg>
+    </div>
     <p class="count" id="count">已选 0 格</p>
   </section>
 
@@ -281,6 +306,17 @@
       a.click();
     };
     img.src = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svg)));
+  };
+
+  const zoom = document.getElementById('zoom');
+  zoom.oninput = () => {
+    document.documentElement.style.setProperty('--zoom', zoom.value);
+    document.getElementById('zoomOut').textContent = `${Number(zoom.value).toFixed(1)}×`;
+  };
+
+  document.getElementById('focus').onclick = (e) => {
+    document.body.classList.toggle('focus');
+    e.target.textContent = document.body.classList.contains('focus') ? '退出满屏' : '满屏画布';
   };
 
   rowsSel.onchange = render;
