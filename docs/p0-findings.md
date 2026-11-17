@@ -119,6 +119,33 @@ curl -i https://api.deepseek.com/user/balance -H "Origin: https://localhost"
 - `settings.ts:23` → `apiKey: 'chat-demo:api-key'`
 - `settings.ts:122` `setApiKey()` 直接 `localStorage.setItem`
 
+### 2.8 APK 已能产出（P0 第 5 条达成一半）
+
+| 步骤 | 命令 | 结果 |
+|---|---|---|
+| 网页构建 | `pnpm build` | dist/ 产出 |
+| 加 Android 工程 | `pnpm exec cap add android` | Capacitor 8.6.2，生成 `android/` |
+| 同步资源 | `pnpm exec cap sync android` | dist/ → `assets/public/`，155 个文件 |
+| 打 debug 包 | `gradlew assembleDebug` | **BUILD SUCCESSFUL**，5.99 MB |
+
+产物校验（用 `aapt2 dump badging` 与直接解包读取）：
+
+```
+package: name='com.dsecho.app' versionName='1.0' compileSdkVersion='36'
+minSdkVersion:'24'  targetSdkVersion:'36'
+application-label:'DS Echo'
+assets/public/index.html
+assets/public/static/js/main.9820cd3a.js (463.8 KB)
+assets/public/* 共 155 个文件
+```
+
+两个必须记住的构建约束（详见 `docs/android-build.md`）：
+1. **JDK 必须是 21**。用 17 会在 `compileDebugJavaWithJavac` 报 `无效的源发行版：21`（Capacitor 8 的源码级别是 21）。
+2. **工程路径含中文会被 AGP 拒绝**。已在 `android/gradle.properties` 加 `android.overridePathCheck=true` 放行。
+   本项目无 NDK，可接受；**一旦引入 NDK 必须迁到纯 ASCII 路径**。
+
+一键重建：`.\scripts\build-apk.ps1`（已实测，增量约 20s）。
+
 ### 2.9 用真实 ZIP 跑通「改造前」基线（P2 的对照物）
 
 样本：用户从 chat.deepseek.com 导出的真实包 `chatdata/deepseek_data-2026-11-17.zip`
@@ -153,49 +180,64 @@ curl -i https://api.deepseek.com/user/balance -H "Origin: https://localhost"
 
 截图证据：`.verify/import-baseline/{1-file-selected,2-confirm-dialog,3-imported,4-session-list}.png`
 
-## 3. 阻塞与未验证项（不许含糊）
+## 3. 真机验证结果（vivo V2309A / Android 16 / WebView Chromium 157）
+
+设备：`10AE4X2S8U006RZ`，型号 V2309A，Android 16（API 36），系统 WebView `157.0.8103.50`。
+
+接管方式（比坐标点击可靠）：debug 包默认开放 WebView 远程调试，用
+`adb forward tcp:9222 localabstract:webview_devtools_remote_<pid>` 暴露 CDP，
+再用 Playwright `connect_over_cdp` 直接操作真实 WebView。
+脚本：`scripts/device-check.py`、`scripts/device-stream-test.py`、`scripts/device-happy-path.py`
+
+### 3.1 P0 五道门槛逐项结论
+
+| 门槛 | 结果 | 证据 |
+|---|---|---|
+| APK 能打开 | ✅ | 安装成功，`topResumedActivity=com.dsecho.app/.MainActivity`，截图正常渲染 |
+| 能发真实请求 | ✅ | 设备内真实发出 `GET https://api.deepseek.com/models`（假 Key，收到 401）；换真 Key 后对话成功 |
+| **流式显示** | ✅ | 采样长度序列 2 → 29 → 74 → 114 → 155 → 196 → 225，6 次递增 |
+| **可取消** | ✅ | 在第 225 字处点击停止，之后 12 次采样恒为 227，不再增长 |
+| 页面重进不丢 | ✅ | 切到桌面 2.5s 再回前台，之前的回答仍在页面上 |
+| 余额接口可用 | ✅ | 页面内 `fetch /user/balance` 返回 **200**，`is_available=true`，币种 `CNY`，字段 `total_balance`/`granted_balance`/`topped_up_balance` 齐全 |
+
+### 3.2 由此关闭的高危风险
+
+计划书第 8 章的头号风险「WebView CORS / SSE 失效」**已用真机证伪**：
+
+- 设备内 origin 为 `https://localhost`（Capacitor 默认 scheme），预检通过
+- SSE 是**逐块**到达的，不存在整段缓冲后才显示的问题
+- 因此**不需要**写原生 HTTP/SSE 桥接（那是计划书里预留的兜底方案，可以不做）
+
+### 3.3 记录到的现象（不是缺陷，但 P1 要改）
+
+- 首屏直接弹出「设置」对话框，API Key 输入框在**「数据管理」页签**里，
+  而不是「通用设置」——对不懂 API 的用户来说这层信息架构是错的。
+  P1 的极简连接向导要解决的就是这件事。
+- 断网/Key 无效时目前只有一句笼统提示，没有区分"Key 错"与"网络不通"（P1 处理）。
+- 语音输入入口在 WebView 里大概率是禁用态（见 `docs/code-map.md` 附录）。
+
+## 4. 阻塞与未验证项（不许含糊）
 
 | 项 | 状态 | 说明 |
 |---|---|---|
 | Android APK 构建 | ✅ **通过** | `app-debug.apk` 5.99 MB，见 2.8 |
-| 真机安装与启动 | ❌ **阻塞** | `adb devices` 为空，等待手机以 USB 调试模式接入 |
-| 真机 SSE 流式验证 | ❌ **阻塞** | 同上；CORS 已排除，仍剩「WebView 是否缓冲 SSE」这一项未验证 |
-| 真机余额接口验证 | ❌ **阻塞** | 同上（CORS 已通过 curl 侧证） |
-| 真实 ZIP 导入回归 | ⚠️ 未做 | 用户已确认有一份真实 ZIP，待 P2 |
-| 代码地图 | ✅ 完成 | `docs/code-map.md`（117 个文件通读，路径全部做过存在性校验） |
+| 真机安装与启动 | ✅ **通过** | 见 3.1 |
+| 真机 SSE 流式验证 | ✅ **通过** | 6 次递增，逐块到达 |
+| 真机余额接口验证 | ✅ **通过** | 200 / is_available=true / CNY |
+| 停止生成 | ✅ **通过** | 点击后长度冻结在 227 |
+| 切后台恢复 | ✅ **通过** | 回答仍在页面上 |
+| 真实 ZIP 导入基线 | ✅ **通过** | 77 会话 / 6 附件，见 2.9 |
+| 代码地图 | ✅ 完成 | `docs/code-map.md`（117 个文件通读） |
+| ZIP 分享接收（ACTION_SEND） | ⬜ 未做 | 计划书 T11 |
+| 导入后能否续聊 | ⬜ 未做 | 计划书 T09，需先做 P1 的连接体验 |
 
-### 2.8 APK 已能产出（P0 第 5 条达成一半）
-
-| 步骤 | 命令 | 结果 |
-|---|---|---|
-| 网页构建 | `pnpm build` | dist/ 产出 |
-| 加 Android 工程 | `pnpm exec cap add android` | Capacitor 8.6.2，生成 `android/` |
-| 同步资源 | `pnpm exec cap sync android` | dist/ → `assets/public/`，155 个文件 |
-| 打 debug 包 | `gradlew assembleDebug` | **BUILD SUCCESSFUL**，5.99 MB |
-
-产物校验（用 `aapt2 dump badging` 与直接解包读取）：
-
-```
-package: name='com.dsecho.app' versionName='1.0' compileSdkVersion='36'
-minSdkVersion:'24'  targetSdkVersion:'36'
-application-label:'DS Echo'
-assets/public/index.html
-assets/public/static/js/main.9820cd3a.js (463.8 KB)
-assets/public/* 共 155 个文件
-```
-
-两个必须记住的构建约束（详见 `docs/android-build.md`）：
-1. **JDK 必须是 21**。用 17 会在 `compileDebugJavaWithJavac` 报 `无效的源发行版：21`（Capacitor 8 的源码级别是 21）。
-2. **工程路径含中文会被 AGP 拒绝**。已在 `android/gradle.properties` 加 `android.overridePathCheck=true` 放行。
-   本项目无 NDK，可接受；**一旦引入 NDK 必须迁到纯 ASCII 路径**。
-
-一键重建：`.\scripts\build-apk.ps1`（已实测，增量约 20s）。
-
-## 4. 风险登记更新（相对计划书第 8 章）
+## 5. 风险登记更新（相对计划书第 8 章）
 
 | 原风险 | 新等级 | 依据 |
 |---|---|---|
-| WebView CORS 失效 | 高 → **低** | 实测 API 反射 Origin，预检放行 |
-| WebView SSE 被缓冲 | 高 → **中** | 只剩这一项需要真机；Android 13+ 系统 WebView 内核较新，大概率可用，但**未验证** |
-| 合并导入破坏历史 | 高 → **中** | 上游已有暂存+事务+回滚，只需改 clear→merge 并补测试 |
+| WebView CORS 失效 | 高 → **已关闭** | 真机实测：反射 Origin、预检通过、请求真实发出（见 3.1、3.2） |
+| WebView SSE 被缓冲 | 高 → **已关闭** | 真机实测 6 次递增，逐块到达（见 3.1） |
+| 合并导入破坏历史 | 高 → **中** | 上游已有暂存+事务+回滚，只需改 clear→merge 并补测试（见 2.6） |
 | 官方 ZIP 格式变化 | 中高（不变） | 有 `export_format_version = 3` 版本校验（`history/format.ts:12`、`schema.ts:231-235`） |
+| 构建环境不可复现 | 中（新增） | 依赖 D 盘外置 JDK 21 + SDK；已写成 `docs/android-build.md` 与一键脚本 |
+
