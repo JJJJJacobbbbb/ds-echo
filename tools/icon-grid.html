@@ -3,324 +3,303 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>DS Echo 图标工作台 · 三角网格</title>
+<title>DS Echo 图标工作台 · 图案</title>
 <!--
-  用途：手动挑选正三角形网格里的填充块，做出应用图标的主图形。
-  为什么是单文件、不依赖任何库：
-  - 这是给设计做决定用的临时工具，双击就能开，不需要 npm/构建/服务器
-  - 只用到 SVG 与 Canvas，浏览器原生能力足够
-  产出的 JSON 交给 scripts/generate-icons.py 渲染成 Android 资源。
+  用途：在铺满整块画布的三种图案里点选色块，作为应用图标的主图形。
+  三种图案：
+    1) 等边三角形（上下交替铺满）
+    2) 条形地砖（横排/竖排成「回」字形交替，即 basketweave）
+    3) 等腰直角三角形（方格对角切分，斜线方向交替）
+  为什么单文件、零依赖：这是做设计决定用的临时工具，双击就能开，不需要构建或服务器。
+  输出：图案名 + 归一化坐标，交给 scripts/generate-icons.py 渲染成 Android 资源。
 -->
 <style>
   :root {
     --blue: #3d7cff;
     --ink: #1c2128;
     --muted: #6b7280;
-    --line: #dfe4ec;
-    --panel: #ffffff;
+    --line: #e2e7ef;
     --bg: #f4f6fa;
   }
   * { box-sizing: border-box; }
+  html, body { height: 100%; }
   body {
     margin: 0;
-    font: 14px/1.6 -apple-system, "Segoe UI", "Microsoft YaHei", sans-serif;
+    display: flex;
+    flex-direction: column;
+    font: 14px/1.5 -apple-system, "Segoe UI", "Microsoft YaHei", sans-serif;
     color: var(--ink);
     background: var(--bg);
+    overflow: hidden;
   }
   header {
-    padding: 18px 24px 10px;
     display: flex;
-    align-items: baseline;
-    gap: 16px;
+    align-items: center;
+    gap: 10px;
     flex-wrap: wrap;
+    padding: 10px 16px;
+    border-bottom: 1px solid var(--line);
+    background: #fff;
   }
-  h1 { font-size: 18px; margin: 0; font-weight: 600; }
-  header .hint { color: var(--muted); font-size: 13px; }
-  main {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) 300px;
-    gap: 18px;
-    padding: 8px 20px 20px;
-    align-items: start;
+  h1 { font-size: 15px; margin: 0 8px 0 0; font-weight: 600; }
+  .tabs { display: flex; gap: 4px; padding: 3px; background: var(--bg); border-radius: 10px; }
+  .tabs button {
+    border: none; background: transparent; padding: 6px 12px;
+    border-radius: 8px; font: inherit; color: var(--muted); cursor: pointer;
   }
-  /* 专注模式：收起侧栏，画布铺满整个窗口 */
-  body.focus main { grid-template-columns: 1fr; }
-  body.focus aside { display: none; }
-  body.focus #stage { width: min(100%, calc(100vh - 130px)); }
-  .panel {
-    background: var(--panel);
-    border: 1px solid var(--line);
-    border-radius: 14px;
-    padding: 14px;
+  .tabs button.on { background: #fff; color: var(--ink); box-shadow: 0 1px 2px rgba(0,0,0,.08); }
+  .tools { display: flex; gap: 8px; margin-left: auto; align-items: center; flex-wrap: wrap; }
+  button.act {
+    font: inherit; padding: 6px 12px; border-radius: 9px;
+    border: 1px solid var(--line); background: #fff; color: var(--ink); cursor: pointer;
   }
-  /*
-   * 画布尺寸 = 「一屏能整块放下」的最小边 * 缩放倍数。
-   * 正方形本身受限：想让三角形更大就必然要滚动，所以把决定权交给缩放滑杆。
-   */
-  .stageWrap { display: grid; place-items: center; overflow: auto; }
-  #stage {
-    display: block;
-    cursor: crosshair;
-    width: calc(min(100%, 100vh - 150px) * var(--zoom, 1));
-    aspect-ratio: 1 / 1;
-  }
-  .zoom { display: inline-flex; align-items: center; gap: 8px; color: var(--muted); }
-  .zoom input[type="range"] { width: 130px; accent-color: var(--blue); }
-  .zoom output { min-width: 44px; font-variant-numeric: tabular-nums; }
-  /* non-scaling-stroke：放大画布时网格线保持 1.2px，不会变成粗块 */
-  .cell { fill: transparent; stroke: var(--line); stroke-width: 1.2; vector-effect: non-scaling-stroke; }
+  button.act:hover { border-color: #b9c3d4; }
+  button.act.primary { background: var(--blue); border-color: var(--blue); color: #fff; }
+  .zoom { display: inline-flex; align-items: center; gap: 6px; color: var(--muted); font-size: 13px; }
+  .zoom input { width: 110px; accent-color: var(--blue); }
+  main { flex: 1; min-height: 0; overflow: auto; background: #fff; }
+  /* 画布铺满可用区域；图案按实际像素生成，边缘自然裁切 */
+  #stage { display: block; cursor: pointer; }
+  .cell { fill: transparent; stroke: var(--line); stroke-width: 1; vector-effect: non-scaling-stroke; }
   .cell.on { fill: var(--blue); stroke: var(--blue); }
   .cell:hover { stroke: var(--blue); stroke-width: 2; }
-
-  .toolbar { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
-  button {
-    font: inherit;
-    padding: 7px 12px;
-    border-radius: 9px;
-    border: 1px solid var(--line);
-    background: #fff;
-    color: var(--ink);
-    cursor: pointer;
+  #sentinel { height: 1px; }
+  footer {
+    display: flex; align-items: center; gap: 10px;
+    padding: 6px 16px; border-top: 1px solid var(--line);
+    background: #fff; font-size: 12px; color: var(--muted);
   }
-  button:hover { border-color: #b9c3d4; }
-  button.primary { background: var(--blue); border-color: var(--blue); color: #fff; }
-  label.field { display: inline-flex; align-items: center; gap: 6px; color: var(--muted); }
-  select, input[type="number"] {
-    font: inherit; padding: 6px 8px; border-radius: 8px;
-    border: 1px solid var(--line); background: #fff; color: var(--ink);
+  footer textarea {
+    flex: 1; height: 26px; resize: none; font: 12px ui-monospace, Consolas, monospace;
+    border: 1px solid var(--line); border-radius: 8px; padding: 3px 8px; color: var(--ink);
+    background: #fbfcfe;
   }
-  .side h2 { font-size: 13px; color: var(--muted); font-weight: 500; margin: 0 0 8px; }
-  .previews { display: flex; gap: 14px; align-items: flex-end; margin-bottom: 14px; }
-  .preview { text-align: center; }
-  .preview .box {
-    background: #fff; border: 1px solid var(--line);
-    display: grid; place-items: center; overflow: hidden;
-  }
-  .preview .box.round { border-radius: 50%; }
-  .preview .cap { font-size: 11px; color: var(--muted); margin-top: 4px; }
-  textarea {
-    width: 100%; min-height: 96px; font: 12px/1.5 ui-monospace, Consolas, monospace;
-    border: 1px solid var(--line); border-radius: 10px; padding: 8px; resize: vertical;
-    background: #fbfcfe; color: var(--ink);
-  }
-  .count { color: var(--muted); font-size: 12px; margin: 6px 0 0; }
 </style>
 </head>
 <body>
 <header>
   <h1>DS Echo 图标工作台</h1>
-  <span class="hint">点三角形填色 / 再点取消。右侧小图就是桌面上看到的实际大小。</span>
+  <div class="tabs" id="tabs">
+    <button data-pattern="triangles" class="on">等边三角形</button>
+    <button data-pattern="bricks">条形地砖</button>
+    <button data-pattern="rightTriangles">等腰直角三角形</button>
+  </div>
+  <div class="tools">
+    <label class="zoom">缩放
+      <input id="zoom" type="range" min="1" max="3" step="0.1" value="1" />
+      <span id="zoomOut">1.0×</span>
+    </label>
+    <button class="act" id="clear">清空</button>
+    <button class="act" id="random">随机</button>
+    <button class="act" id="png">下载 PNG</button>
+    <button class="act primary" id="copy">复制选择</button>
+  </div>
 </header>
 
-<main>
-  <section class="panel">
-    <div class="toolbar">
-      <label class="field">行数
-        <select id="rows">
-          <option>4</option><option>5</option><option>6</option>
-          <option selected>7</option><option>8</option><option>9</option><option>10</option>
-        </select>
-      </label>
-      <button id="clear">清空</button>
-      <button id="random">随机</button>
-      <button id="copy" class="primary">复制选择</button>
-      <button id="png">下载 PNG 108px</button>
-      <button id="focus">满屏画布</button>
-      <label class="zoom">缩放
-        <input id="zoom" type="range" min="0.8" max="2" step="0.1" value="1" />
-        <output id="zoomOut">1.0×</output>
-      </label>
-    </div>
-    <div class="stageWrap">
-      <svg id="stage" xmlns="http://www.w3.org/2000/svg"></svg>
-    </div>
-    <p class="count" id="count">已选 0 格</p>
-  </section>
-
-  <aside class="panel side">
-    <h2>尺寸预览</h2>
-    <div class="previews">
-      <div class="preview">
-        <div class="box" id="p48" style="width:48px;height:48px"></div>
-        <div class="cap">48px</div>
-      </div>
-      <div class="preview">
-        <div class="box" id="p96" style="width:96px;height:96px"></div>
-        <div class="cap">96px</div>
-      </div>
-      <div class="preview">
-        <div class="box round" id="p192" style="width:120px;height:120px"></div>
-        <div class="cap">圆形遮罩</div>
-      </div>
-    </div>
-
-    <h2>把结果发给我</h2>
-    <p class="count">点「复制选择」后直接粘到对话里即可；也可以手动全选这段文字。</p>
-    <textarea id="out" spellcheck="false" readonly placeholder="点击格子后，这里会显示 JSON"></textarea>
-  </aside>
+<main id="wrap">
+  <svg id="stage" xmlns="http://www.w3.org/2000/svg"></svg>
 </main>
+
+<footer>
+  <span id="count">已选 0 格</span>
+  <textarea id="out" readonly spellcheck="false" placeholder="点格子后这里会出现结果，点「复制选择」可复制"></textarea>
+</footer>
 
 <script>
 (() => {
-  const BLUE = '#3d7cff';
-  const S = 100;                       // 内部坐标系边长，导出时等比缩放
   const SVG_NS = 'http://www.w3.org/2000/svg';
-
   const stage = document.getElementById('stage');
-  const rowsSel = document.getElementById('rows');
-  const countEl = document.getElementById('count');
+  const wrap = document.getElementById('wrap');
   const outEl = document.getElementById('out');
+  const countEl = document.getElementById('count');
 
-  /** 已选中的格：key = `${row}-${col}-${orient}` */
   const chosen = new Set();
-  let cells = {};      // key -> { pts, points }
+  let pattern = 'triangles';
+  let cells = [];        // [{ key, pts: [[x,y],...] }]
+  let size = { w: 1, h: 1 };
 
-  /** 生成塔尖朝上的正三角网格，整体居中在 100×100 内 */
-  function buildGrid(rows) {
-    const side = 96 / rows;
-    const h = side * Math.sqrt(3) / 2;
-    const totalH = rows * h;
-    const yTop = (S - totalH) / 2;
-    const map = {};
-    for (let i = 0; i < rows; i++) {
-      const ups = i + 1;
-      const xLeft = (S - ups * side) / 2;
-      const yt = yTop + i * h;
-      const yb = yt + h;
-      for (let j = 0; j < ups; j++) {
-        const xb = xLeft + j * side;
-        map[`${i}-${j}-up`] = [[xb, yb], [xb + side, yb], [xb + side / 2, yt]];
-        if (j < ups - 1) {
-          map[`${i}-${j}-down`] = [[xb + side / 2, yt], [xb + side * 1.5, yt], [xb + side, yb]];
+  /** 把 key 拆成 [col,row,sub]，便于导出后复原 */
+  const keyOf = (...parts) => parts.join(':');
+
+  // ---------- 三种图案的生成：都按实际像素铺满整块画布 ----------
+  const patterns = {
+    /** 等边三角形：上下交替，铺满 */
+    triangles(w, h) {
+      const side = 76;
+      const rows = Math.ceil(h / (side * Math.sqrt(3) / 2)) + 1;
+      const cols = Math.ceil(w / side) + 2;
+      const hh = side * Math.sqrt(3) / 2;
+      const list = [];
+      for (let r = 0; r < rows; r++) {
+        const yt = r * hh, yb = yt + hh;
+        for (let c = -1; c < cols; c++) {
+          const x = c * side;
+          list.push({ key: keyOf('t', c, r, 'up'), pts: [[x, yb], [x + side, yb], [x + side / 2, yt]] });
+          list.push({ key: keyOf('t', c, r, 'down'), pts: [[x + side / 2, yt], [x + side * 1.5, yt], [x + side, yb]] });
         }
       }
-    }
-    return map;
+      return list;
+    },
+
+    /** 条形地砖：横排块与竖排块按棋盘交错（basketweave / 回字形） */
+    bricks(w, h) {
+      const block = 152;             // 每个方块区域的大小
+      const half = block / 2;
+      const rows = Math.ceil(h / block) + 1;
+      const cols = Math.ceil(w / block) + 1;
+      const list = [];
+      for (let r = 0; r < rows; r++) {
+        for (let c = 0; c < cols; c++) {
+          const x = c * block, y = r * block;
+          if ((r + c) % 2 === 0) {
+            // 横排：上下两条长砖
+            list.push({ key: keyOf('b', c, r, 0), pts: [[x, y], [x + block, y], [x + block, y + half], [x, y + half]] });
+            list.push({ key: keyOf('b', c, r, 1), pts: [[x, y + half], [x + block, y + half], [x + block, y + block], [x, y + block]] });
+          } else {
+            // 竖排：左右两条长砖
+            list.push({ key: keyOf('b', c, r, 0), pts: [[x, y], [x + half, y], [x + half, y + block], [x, y + block]] });
+            list.push({ key: keyOf('b', c, r, 1), pts: [[x + half, y], [x + block, y], [x + block, y + block], [x + half, y + block]] });
+          }
+        }
+      }
+      return list;
+    },
+
+    /** 等腰直角三角形：方格对角切成两半，斜线方向按棋盘交替 */
+    rightTriangles(w, h) {
+      const s = 84;
+      const rows = Math.ceil(h / s) + 1;
+      const cols = Math.ceil(w / s) + 1;
+      const list = [];
+      for (let r = 0; r < rows; r++) {
+        for (let c = 0; c < cols; c++) {
+          const x = c * s, y = r * s;
+          // 斜线方向交替：形成「人」字形节奏，不是单纯斜条纹
+          if ((r + c) % 2 === 0) {
+            list.push({ key: keyOf('r', c, r, 'a'), pts: [[x, y], [x, y + s], [x + s, y + s]] });
+            list.push({ key: keyOf('r', c, r, 'b'), pts: [[x, y], [x + s, y], [x + s, y + s]] });
+          } else {
+            list.push({ key: keyOf('r', c, r, 'a'), pts: [[x, y], [x + s, y], [x, y + s]] });
+            list.push({ key: keyOf('r', c, r, 'b'), pts: [[x + s, y], [x + s, y + s], [x, y + s]] });
+          }
+        }
+      }
+      return list;
+    },
+  };
+
+  function build() {
+    const zoom = Number(document.getElementById('zoom').value) || 1;
+    // 缩放靠放大画布实现，超出部分可滚动
+    const w = Math.max(320, Math.round(wrap.clientWidth * zoom));
+    const h = Math.max(320, Math.round(wrap.clientHeight * zoom));
+    size = { w, h };
+    stage.setAttribute('viewBox', `0 0 ${w} ${h}`);
+    stage.setAttribute('width', w);
+    stage.setAttribute('height', h);
+    cells = patterns[pattern](w, h);
+    render();
   }
 
   function render() {
-    const rows = Number(rowsSel.value);
-    cells = buildGrid(rows);
-    // 行数变化后，旧选择可能越界，直接清掉
-    for (const key of [...chosen]) {
-      if (!cells[key]) chosen.delete(key);
-    }
-
-    stage.setAttribute('viewBox', `0 0 ${S} ${S}`);
-    stage.innerHTML = '';
-    for (const [key, pts] of Object.entries(cells)) {
+    const frag = document.createDocumentFragment();
+    for (const { key, pts } of cells) {
       const poly = document.createElementNS(SVG_NS, 'polygon');
       poly.setAttribute('points', pts.map(([x, y]) => `${x},${y}`).join(' '));
       poly.setAttribute('class', 'cell' + (chosen.has(key) ? ' on' : ''));
-      poly.dataset.key = key;
       poly.addEventListener('click', () => {
         chosen.has(key) ? chosen.delete(key) : chosen.add(key);
         poly.setAttribute('class', 'cell' + (chosen.has(key) ? ' on' : ''));
         sync();
       });
-      stage.appendChild(poly);
+      frag.appendChild(poly);
     }
+    stage.replaceChildren(frag);
     sync();
   }
 
-  /** 把当前选择画成一个小 SVG（用于多尺寸预览） */
-  function iconSvg(size) {
-    const parts = [];
-    for (const key of chosen) {
-      const pts = cells[key];
-      if (!pts) continue;
-      parts.push(`<polygon points="${pts.map(([x, y]) => `${x},${y}`).join(' ')}" fill="${BLUE}"/>`);
-    }
-    return `<svg xmlns="${SVG_NS}" viewBox="0 0 ${S} ${S}" width="${size}" height="${size}">${parts.join('')}</svg>`;
+  /** 归一化到 0~1 的坐标，方便在任何尺寸（尤其是图标 108dp）上复原 */
+  function normalizedSelection() {
+    return cells
+      .filter((c) => chosen.has(c.key))
+      .map((c) => ({
+        k: c.key,
+        p: c.pts.map(([x, y]) => [Number((x / size.w).toFixed(4)), Number((y / size.h).toFixed(4))]),
+      }));
   }
 
   function sync() {
-    document.getElementById('p48').innerHTML = iconSvg(48);
-    document.getElementById('p96').innerHTML = iconSvg(96);
-    document.getElementById('p192').innerHTML = iconSvg(120);
     countEl.textContent = `已选 ${chosen.size} 格`;
-    const rows = Number(rowsSel.value);
-    outEl.value = JSON.stringify({
-      rows,
-      cells: [...chosen].map((k) => k.split('-').map((v, i) => (i < 2 ? Number(v) : v))),
-    });
+    outEl.value = JSON.stringify({ pattern, cells: normalizedSelection() });
   }
 
-  document.getElementById('clear').onclick = () => {
+  // ---------- 工具栏 ----------
+  document.getElementById('tabs').addEventListener('click', (e) => {
+    const btn = e.target.closest('button[data-pattern]');
+    if (!btn) return;
+    for (const b of e.currentTarget.querySelectorAll('button')) b.classList.toggle('on', b === btn);
+    pattern = btn.dataset.pattern;
     chosen.clear();
-    render();
-  };
+    build();
+  });
+
+  document.getElementById('clear').onclick = () => { chosen.clear(); render(); };
 
   document.getElementById('random').onclick = () => {
-    const keys = Object.keys(cells);
     chosen.clear();
-    const target = Math.round(keys.length * (0.28 + Math.random() * 0.12));
-    // 从随机起点向外长，保证连通
-    const seed = keys[Math.floor(Math.random() * keys.length)];
-    chosen.add(seed);
-    const xs = (k) => {
-      const [r, c, o] = k.split('-');
-      return [Number(r), Number(c), o];
-    };
-    while (chosen.size < target) {
-      const pool = [];
-      for (const k of chosen) {
-        const [r, c, o] = xs(k);
-        // 相邻关系：同一行左右、上下行
-        const cand = [`${r}-${c + 1}-${o}`, `${r}-${c - 1}-${o}`,
-                      `${r - 1}-${c}-up`, `${r - 1}-${c}-down`,
-                      `${r + 1}-${c}-up`, `${r + 1}-${c}-down`];
-        for (const kk of cand) if (cells[kk] && !chosen.has(kk)) pool.push(kk);
-      }
-      if (!pool.length) break;
-      chosen.add(pool[Math.floor(Math.random() * pool.length)]);
-    }
+    for (const c of cells) if (Math.random() < 0.3) chosen.add(c.key);
     render();
   };
 
   document.getElementById('copy').onclick = async () => {
     sync();
+    const btn = document.getElementById('copy');
     try {
       await navigator.clipboard.writeText(outEl.value);
-      document.getElementById('copy').textContent = '已复制';
-      setTimeout(() => (document.getElementById('copy').textContent = '复制选择'), 1200);
+      btn.textContent = '已复制';
     } catch {
-      outEl.select();
-      document.execCommand('copy');
+      outEl.select(); document.execCommand('copy'); btn.textContent = '已复制';
     }
+    setTimeout(() => (btn.textContent = '复制选择'), 1200);
   };
 
+  /** 导出 PNG：取画布中心的方形区域（图标是正方形的），108dp * 4 倍 */
   document.getElementById('png').onclick = () => {
-    const svg = iconSvg(108);
+    const side = Math.min(size.w, size.h);
+    const ox = (size.w - side) / 2, oy = (size.h - side) / 2;
+    const polys = cells
+      .filter((c) => chosen.has(c.key))
+      .map((c) => `<polygon points="${c.pts.map(([x, y]) => `${x},${y}`).join(' ')}" fill="#3d7cff"/>`)
+      .join('');
+    const svg = `<svg xmlns="${SVG_NS}" viewBox="${ox} ${oy} ${side} ${side}" width="432" height="432">${polys}</svg>`;
     const img = new Image();
     img.onload = () => {
-      const c = document.createElement('canvas');
-      c.width = c.height = 432;
-      const ctx = c.getContext('2d');
+      const cv = document.createElement('canvas');
+      cv.width = cv.height = 432;
+      const ctx = cv.getContext('2d');
       ctx.fillStyle = '#fff';
       ctx.fillRect(0, 0, 432, 432);
       ctx.drawImage(img, 0, 0, 432, 432);
       const a = document.createElement('a');
-      a.href = c.toDataURL('image/png');
-      a.download = `dsecho-icon-${rowsSel.value}rows.png`;
+      a.href = cv.toDataURL('image/png');
+      a.download = `dsecho-${pattern}.png`;
       a.click();
     };
     img.src = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svg)));
   };
 
-  const zoom = document.getElementById('zoom');
-  zoom.oninput = () => {
-    document.documentElement.style.setProperty('--zoom', zoom.value);
-    document.getElementById('zoomOut').textContent = `${Number(zoom.value).toFixed(1)}×`;
+  document.getElementById('zoom').oninput = (e) => {
+    document.getElementById('zoomOut').textContent = `${Number(e.target.value).toFixed(1)}×`;
+    build();
   };
 
-  document.getElementById('focus').onclick = (e) => {
-    document.body.classList.toggle('focus');
-    e.target.textContent = document.body.classList.contains('focus') ? '退出满屏' : '满屏画布';
-  };
+  let timer = 0;
+  window.addEventListener('resize', () => {
+    clearTimeout(timer);
+    timer = setTimeout(build, 150);
+  });
 
-  rowsSel.onchange = render;
-  render();
+  build();
 })();
 </script>
 </body>
