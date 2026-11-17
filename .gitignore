@@ -15,3 +15,8 @@ tmp/
 
 # 用户的真实聊天导出包（含私人对话，绝不可入库）
 chatdata/
+
+# 发布签名：密码文件与密钥库（密钥库本体在仓库外，这里再挡一层）
+android/keystore.properties
+*.jks
+*.keystore

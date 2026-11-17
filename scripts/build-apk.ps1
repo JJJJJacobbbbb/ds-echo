@@ -4,8 +4,12 @@
 # 而 JDK 与 SDK 装在仓库之外的 D:\_tools。每次手敲三行 export 容易漏、漏了报错又难懂。
 # 真正的构建仍然完全交给 pnpm / Capacitor CLI / Gradle 官方工具，本脚本不重写任何构建逻辑。
 #
-# 用法：  .\scripts\build-apk.ps1
-# 产物：  android\app\build\outputs\apk\debug\app-debug.apk
+# 用法：  .\scripts\build-apk.ps1            # debug 包（带 WebView 调试端口，仅自用）
+#        .\scripts\build-apk.ps1 -Release    # 签名包（可对外分发）
+# 产物：  android\app\build\outputs\apk\{debug\app-debug,release\app-release}.apk
+
+# param 必须是脚本的第一条可执行语句
+param([switch]$Release)
 
 $ErrorActionPreference = "Stop"
 
@@ -35,18 +39,25 @@ try {
     pnpm exec cap sync android
     if ($LASTEXITCODE -ne 0) { throw "cap sync 失败" }
 
-    Write-Host "==> [3/3] 构建 debug APK (gradle)" -ForegroundColor Cyan
+    $task = if ($Release) { "assembleRelease" } else { "assembleDebug" }
+    Write-Host "==> [3/3] 构建 $task (gradle)" -ForegroundColor Cyan
     Push-Location "$repoRoot\android"
     try {
-        .\gradlew.bat assembleDebug --no-daemon --console=plain
-        if ($LASTEXITCODE -ne 0) { throw "gradle assembleDebug 失败" }
+        .\gradlew.bat $task --no-daemon --console=plain
+        if ($LASTEXITCODE -ne 0) { throw "gradle $task 失败" }
     } finally {
         Pop-Location
     }
 
-    $apk = "$repoRoot\android\app\build\outputs\apk\debug\app-debug.apk"
+    $apk = if ($Release) {
+        "$repoRoot\android\app\build\outputs\apk\release\app-release.apk"
+    } else {
+        "$repoRoot\android\app\build\outputs\apk\debug\app-debug.apk"
+    }
     $size = [math]::Round((Get-Item $apk).Length / 1MB, 2)
     Write-Host "`n==> 成功：$apk  ($size MB)" -ForegroundColor Green
 } finally {
     Pop-Location
 }
+
+
