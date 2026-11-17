@@ -1,20 +1,16 @@
-"""生成 DS Echo 的应用图标与启动图（替换 Capacitor 默认图标）。
+"""生成 DS Echo 的应用图标与启动图。
 
-设计：白底 + 蓝色「声呐/回声」标记——中央圆点 + 左右各两条同心弧。
-选它的理由：
-- 与上游默认图标同一套语言（纯白底、单一蓝色几何图形），改动最小、风格一致
-- 声呐是「回声」最直接的隐喻，且左右对称，视觉重心在中心，缩到 48px 仍然认得清
-- 纯几何、无文字，不受语言影响
+主图形来自 `tools/icon-selection.json`——那是在 `tools/icon-grid.html` 工作台里手选的
+「条形地砖」组合（回字形交错的地砖语言）。这里把它按真实几何复原、等比缩放到
+Android 自适应图标的安全区内，并输出各密度资源。
 
-产物：
-1. mipmap-*/ic_launcher_foreground.png —— 自适应图标的前景层（108dp 画布，图形限制在 66dp 安全区内）
-2. mipmap-*/ic_launcher.png / ic_launcher_round.png —— Android 8 以下的传统图标
-3. drawable*/splash.png —— 启动图（白底 + 居中标记）
-4. drawable/ic_launcher_monochrome.png 系列 —— Android 13+ 主题图标用的单色层
-5. mipmap-anydpi-v26/ic_launcher*.xml —— 自适应图标描述（含 monochrome）
+为什么用「块坐标」而不是工作台导出的归一化坐标：
+归一化坐标是相对当时窗口宽高各自归一化的，窗口不是正方形时比例会失真；
+而块坐标（列、行、子块）加上固定的块边长，能精确复原每一块砖的位置和大小。
 
 用法： python scripts/generate-icons.py
 """
+import json
 import math
 import pathlib
 
@@ -22,161 +18,148 @@ from PIL import Image, ImageDraw
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 RES = ROOT / "android" / "app" / "src" / "main" / "res"
+SELECTION = ROOT / "tools" / "icon-selection.json"
 
 BLUE = (61, 124, 255, 255)
 WHITE = (255, 255, 255, 255)
-SS = 8  # 超采样倍数
+BLUE_HEX = "#3D7CFF"
 
-# 画布 108×108（自适应图标标准），图形最大半径 32，留在 66dp 安全区内
-CANVAS = 108
-SAFE_RADIUS = 32
-DOT_R = 7.0
-ARC_RADII = (17.0, 29.0)
-ARC_DEG = (-38, 38)
-STROKE = 8.0
+CANVAS = 108            # 自适应图标画布（dp）
+# 图形占的宽度（dp）。图形是 2:1 的横条：
+# 66（标准安全区）在桌面 168px 下显得偏小；82 两端会贴到圆形遮罩边缘被切；74 是实测最稳的中间值
+SAFE = 74
+LEGACY_RATIO = 0.72     # 传统图标（48dp）里图形占的比例
+SPLASH_RATIO = 0.20     # 启动图里图形占短边的比例
+SS = 8                  # 超采样倍数
 
-# 传统图标（Android 8 以下）与启动图里标记占画布的比例
-LEGACY_SCALE = 0.72
-SPLASH_SCALE = 0.20
+DENSITIES = {"mdpi": 1.0, "hdpi": 1.5, "xhdpi": 2.0, "xxhdpi": 3.0, "xxxhdpi": 4.0}
 
 
-def draw_mark(img: Image.Image, cx: float, cy: float, scale: float, color=BLUE):
-    """在 img 上画出标记；scale 表示 1dp 对应多少像素。"""
-    d = ImageDraw.Draw(img)
-    dot = DOT_R * scale
-    d.ellipse([cx - dot, cy - dot, cx + dot, cy + dot], fill=color)
-    w = max(1, round(STROKE * scale))
-    for r in ARC_RADII:
-        rr = r * scale
-        box = [cx - rr, cy - rr, cx + rr, cy + rr]
-        # PIL 角度以 3 点方向为 0、顺时针为正
-        d.arc(box, start=ARC_DEG[0], end=ARC_DEG[1], fill=color, width=w)
-        d.arc(box, start=180 - ARC_DEG[1], end=180 - ARC_DEG[0], fill=color, width=w)
+def load_rects() -> list[tuple[float, float, float, float]]:
+    """从选择文件复原每块砖的矩形（工作台坐标，块边长 block）"""
+    data = json.loads(SELECTION.read_text(encoding="utf-8"))
+    block = data["block"]
+    half = block / 2
+    rects = []
+    for key in data["cells"]:
+        _, col, row, sub = key.split(":")
+        col, row, sub = int(col), int(row), int(sub)
+        x, y = col * block, row * block
+        if (row + col) % 2 == 0:
+            # 横排方块：上下两条横砖
+            rects.append((x, y + sub * half, x + block, y + (sub + 1) * half))
+        else:
+            # 竖排方块：左右两条竖砖
+            rects.append((x + sub * half, y, x + (sub + 1) * half, y + block))
+    return rects
 
 
-def render(size: int, mark_ratio: float, bg=WHITE, round_mask=False) -> Image.Image:
-    """渲染一张 size×size 的图标；mark_ratio 是标记直径占画布的比例。"""
-    big = size * SS
+def fit(rects, box: float) -> tuple[float, float, float]:
+    """把整组砖等比塞进边长 box 的居中方块；返回 (缩放, x 偏移, y 偏移) 与包围框"""
+    x0 = min(r[0] for r in rects)
+    x1 = max(r[2] for r in rects)
+    y0 = min(r[1] for r in rects)
+    y1 = max(r[3] for r in rects)
+    scale = box / max(x1 - x0, y1 - y0)
+    w = (x1 - x0) * scale
+    h = (y1 - y0) * scale
+    return scale, -x0 * scale + (box - w) / 2, -y0 * scale + (box - h) / 2, (x0, y0, x1, y1)
+
+
+def render(canvas_px: int, box_px: float, rects, bg=WHITE) -> Image.Image:
+    """按像素渲染；box_px 是图形所占的边长"""
+    big = canvas_px * SS
     img = Image.new("RGBA", (big, big), bg)
-    # 标记在 108 画布里的外接半径
-    extent = ARC_RADII[-1] + STROKE / 2
-    target_px = big * mark_ratio / 2          # 目标外接半径（像素）
-    scale = target_px / extent               # 1dp → 像素
-    draw_mark(img, big / 2, big / 2, scale)
-    img = img.resize((size, size), Image.LANCZOS)
-    if round_mask:
-        mask = Image.new("L", (size * 4, size * 4), 0)
-        ImageDraw.Draw(mask).ellipse([0, 0, size * 4 - 1, size * 4 - 1], fill=255)
-        mask = mask.resize((size, size), Image.LANCZOS)
-        img.putalpha(mask)
-    return img
-
-
-def render_foreground(size: int) -> Image.Image:
-    """自适应图标的前景层：透明底，标记按 108dp 画布内的安全区摆放。"""
-    big = size * SS
-    img = Image.new("RGBA", (big, big), (0, 0, 0, 0))
-    scale = big / CANVAS
-    draw_mark(img, big / 2, big / 2, scale)
-    return img.resize((size, size), Image.LANCZOS)
-
-
-def vector_paths() -> str:
-    """把标记写成 VectorDrawable 的 path（自适应前景用矢量，任何尺寸都清晰）。"""
-    cx = cy = CANVAS / 2
-
-    def point(r: float, deg: float) -> tuple[float, float]:
-        rad = math.radians(deg)
-        return cx + r * math.cos(rad), cy + r * math.sin(rad)
-
-    def arc_path(r: float, a0: float, a1: float) -> str:
-        x0, y0 = point(r, a0)
-        x1, y1 = point(r, a1)
-        sweep = 1 if a1 > a0 else 0
-        return (
-            f"M{x0:.2f},{y0:.2f} A{r:.2f},{r:.2f} 0 0,{sweep} {x1:.2f},{y1:.2f}"
+    d = ImageDraw.Draw(img)
+    scale, ox, oy, _ = fit(rects, box_px * SS)
+    # 图形整体在画布中居中
+    pad = (big - box_px * SS) / 2
+    for (a, b, c, e) in rects:
+        d.rectangle(
+            [a * scale + ox + pad, b * scale + oy + pad,
+             c * scale + ox + pad, e * scale + oy + pad],
+            fill=BLUE,
         )
-
-    paths = [
-        f'    <path android:fillColor="#3D7CFF" android:pathData="M{cx - DOT_R:.2f},{cy} '
-        f'a{DOT_R:.2f},{DOT_R:.2f} 0 1,0 {DOT_R * 2:.2f},0 '
-        f'a{DOT_R:.2f},{DOT_R:.2f} 0 1,0 -{DOT_R * 2:.2f},0" />'
-    ]
-    for r in ARC_RADII:
-        for a0, a1 in ((ARC_DEG[0], ARC_DEG[1]), (180 - ARC_DEG[1], 180 - ARC_DEG[0])):
-            paths.append(
-                f'    <path android:strokeColor="#3D7CFF" android:strokeWidth="{STROKE}" '
-                f'android:strokeLineCap="round" android:pathData="{arc_path(r, a0, a1)}" />'
-            )
-    return "\n".join(paths)
+    return img.resize((canvas_px, canvas_px), Image.LANCZOS)
 
 
-VECTOR_XML = f"""<?xml version="1.0" encoding="utf-8"?>
-<!-- 由 scripts/generate-icons.py 生成，请勿手改 -->
-<vector xmlns:android="http://schemas.android.com/apk/res/android"
-    android:width="108dp"
-    android:height="108dp"
-    android:viewportWidth="108"
-    android:viewportHeight="108">
-{vector_paths()}
-</vector>
-"""
+def vector_xml(rects) -> str:
+    """把每块砖写成 VectorDrawable path（安全区内的多边形）"""
+    scale, ox, oy, (x0, y0, x1, y1) = fit(rects, SAFE)
+    left = (CANVAS - SAFE) / 2
+    top = (CANVAS - SAFE) / 2
+    parts = []
+    for (a, b, c, e) in rects:
+        pts = [
+            (a * scale + ox + left, b * scale + oy + top),
+            (c * scale + ox + left, b * scale + oy + top),
+            (c * scale + ox + left, e * scale + oy + top),
+            (a * scale + ox + left, e * scale + oy + top),
+        ]
+        d = "M" + " L".join(f"{px:.2f},{py:.2f}" for px, py in pts) + " Z"
+        parts.append(f'    <path android:fillColor="{BLUE_HEX}" android:pathData="{d}" />')
+    return (
+        '<?xml version="1.0" encoding="utf-8"?>\n'
+        "<!-- 由 scripts/generate-icons.py 生成，请勿手改 -->\n"
+        '<vector xmlns:android="http://schemas.android.com/apk/res/android"\n'
+        f'    android:width="{CANVAS}dp"\n'
+        f'    android:height="{CANVAS}dp"\n'
+        f'    android:viewportWidth="{CANVAS}"\n'
+        f'    android:viewportHeight="{CANVAS}">\n'
+        + "\n".join(parts)
+        + "\n</vector>\n"
+    )
+
 
 ADAPTIVE_XML = """<?xml version="1.0" encoding="utf-8"?>
 <!-- 由 scripts/generate-icons.py 生成，请勿手改 -->
 <adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
     <background android:drawable="@color/ic_launcher_background" />
     <foreground android:drawable="@drawable/ic_launcher_foreground" />
-    <!-- Android 13+ 主题图标：系统会按壁纸取色重新着色 -->
+    <!-- Android 13+ 主题图标：系统按壁纸取色重新着色，只看 alpha 通道 -->
     <monochrome android:drawable="@drawable/ic_launcher_foreground" />
 </adaptive-icon>
 """
 
-DENSITIES = {
-    "mdpi": 1.0,
-    "hdpi": 1.5,
-    "xhdpi": 2.0,
-    "xxhdpi": 3.0,
-    "xxxhdpi": 4.0,
-}
-
 
 def main() -> None:
-    # 1) 矢量前景
+    rects = load_rects()
+    print(f"读取到 {len(rects)} 块砖")
+
     drawable = RES / "drawable"
     drawable.mkdir(exist_ok=True)
-    (drawable / "ic_launcher_foreground.xml").write_text(VECTOR_XML, encoding="utf-8")
+    (drawable / "ic_launcher_foreground.xml").write_text(vector_xml(rects), encoding="utf-8")
 
-    # 2) 自适应图标描述
     anydpi = RES / "mipmap-anydpi-v26"
     anydpi.mkdir(exist_ok=True)
     (anydpi / "ic_launcher.xml").write_text(ADAPTIVE_XML, encoding="utf-8")
     (anydpi / "ic_launcher_round.xml").write_text(ADAPTIVE_XML, encoding="utf-8")
 
-    # 3) 传统图标（48dp 基准）与前景 PNG 兜底
     for name, factor in DENSITIES.items():
         d = RES / f"mipmap-{name}"
         d.mkdir(exist_ok=True)
-        legacy = round(48 * factor)
-        render(legacy, LEGACY_SCALE).save(d / "ic_launcher.png")
-        render(legacy, LEGACY_SCALE, round_mask=True).save(d / "ic_launcher_round.png")
-        render_foreground(round(108 * factor)).save(d / "ic_launcher_foreground.png")
+        canvas_dp = 108                                    # 自适应前景层
+        legacy_dp = 48                                     # 传统图标
+        render(round(canvas_dp * factor), SAFE, rects).save(d / "ic_launcher_foreground.png")
+        legacy = render(round(legacy_dp * factor), legacy_dp * LEGACY_RATIO, rects)
+        legacy.save(d / "ic_launcher.png")
+        # 圆形版本：直接给传统图标套圆
+        mask = Image.new("L", (legacy.width * 4, legacy.height * 4), 0)
+        ImageDraw.Draw(mask).ellipse([0, 0, legacy.width * 4 - 1, legacy.height * 4 - 1], fill=255)
+        rounded = legacy.copy()
+        rounded.putalpha(mask.resize(legacy.size, Image.LANCZOS))
+        rounded.save(d / "ic_launcher_round.png")
 
-    # 4) 启动图：白底 + 居中标记，保持原有每张图的尺寸
     for path in sorted(RES.glob("drawable*/*splash*.png")):
         with Image.open(path) as src:
             size = src.size
-        canvas = Image.new("RGBA", (size[0] * 2, size[1] * 2), WHITE)
-        mark_px = min(size) * 2 * SPLASH_SCALE
-        extent = ARC_RADII[-1] + STROKE / 2
-        draw_mark(canvas, canvas.width / 2, canvas.height / 2, mark_px / 2 / extent)
-        canvas.convert("RGB").resize(size, Image.LANCZOS).save(path)
+        mark = min(size) * SPLASH_RATIO * 2
+        big = Image.new("RGBA", (size[0] * 2, size[1] * 2), WHITE)
+        scaled = render(round(mark), mark, rects).resize((round(mark), round(mark)), Image.LANCZOS)
+        big.alpha_composite(scaled, ((big.width - scaled.width) // 2, (big.height - scaled.height) // 2))
+        big.convert("RGB").resize(size, Image.LANCZOS).save(path)
 
-    print("图标与启动图已生成")
-    print("  矢量前景: drawable/ic_launcher_foreground.xml")
-    print(f"  自适应图标: mipmap-anydpi-v26/ic_launcher{{,_round}}.xml")
-    print(f"  传统图标: {len(DENSITIES)} 个密度")
-    print(f"  启动图: {len(list(RES.glob('drawable*/*splash*.png')))} 张")
+    print("已生成：矢量前景 / 自适应图标 / 5 档传统图标 / 11 张启动图")
 
 
 if __name__ == "__main__":
