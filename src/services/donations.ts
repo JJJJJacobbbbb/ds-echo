@@ -14,17 +14,33 @@ import raw from '../data/donations.json' with { type: 'json' }
 export type Donation = {
   name: string
   amount: number
-  message?: string
-  date?: string
 }
 
-/** 解析并排序；金额大的在前，金额相同按名字稳定排序 */
-export const parseDonations = (input: unknown): Donation[] => {
-  if (!Array.isArray(input)) {
-    return []
-  }
+export type DonationList = {
+  items: Donation[]
+  /** 名单最后更新时间（YYYY-MM-DD），由维护者在 JSON 里手写 */
+  updatedAt?: string
+}
+
+/**
+ * 解析并排序；金额大的在前，金额相同按名字排序。
+ * 兼容两种格式：
+ *   { "updatedAt": "2026-11-18", "items": [{ "name": "小林", "amount": 6.66 }] }
+ *   [{ "name": "小林", "amount": 6.66 }]   ← 旧格式
+ */
+export const parseDonations = (input: unknown): DonationList => {
+  const source = Array.isArray(input)
+    ? input
+    : input && typeof input === 'object' && Array.isArray((input as { items?: unknown }).items)
+      ? ((input as { items: unknown[] }).items)
+      : []
+  const updatedAt =
+    !Array.isArray(input) && input && typeof input === 'object'
+      ? (input as { updatedAt?: unknown }).updatedAt
+      : undefined
+
   const items: Donation[] = []
-  for (const entry of input) {
+  for (const entry of source) {
     if (!entry || typeof entry !== 'object') {
       continue
     }
@@ -36,16 +52,13 @@ export const parseDonations = (input: unknown): Donation[] => {
     items.push({
       name: typeof record.name === 'string' ? record.name.trim() : '',
       amount,
-      ...(typeof record.message === 'string' && record.message.trim()
-        ? { message: record.message.trim() }
-        : {}),
-      ...(typeof record.date === 'string' ? { date: record.date } : {}),
     })
   }
-  return items.sort((a, b) => b.amount - a.amount || a.name.localeCompare(b.name))
+  items.sort((a, b) => b.amount - a.amount || a.name.localeCompare(b.name))
+  return { items, ...(typeof updatedAt === 'string' && updatedAt ? { updatedAt } : {}) }
 }
 
-export const listDonations = (): Donation[] => parseDonations(raw)
+export const listDonations = (): DonationList => parseDonations(raw)
 
 /** 远端名单地址（与 update.ts 的仓库一致），jsDelivr 优先、raw 兜底 */
 const DONATION_URLS = (): string[] => {
@@ -59,7 +72,7 @@ const DONATION_URLS = (): string[] => {
 const SOURCE_TIMEOUT_MS = 6_000
 
 /** 从远端拉取名单；全都失败时返回 null（调用方用内置兜底） */
-export const fetchDonations = async (): Promise<Donation[] | null> => {
+export const fetchDonations = async (): Promise<DonationList | null> => {
   for (const url of DONATION_URLS()) {
     const controller = new AbortController()
     const timer = setTimeout(() => controller.abort(), SOURCE_TIMEOUT_MS)
@@ -78,4 +91,4 @@ export const fetchDonations = async (): Promise<Donation[] | null> => {
 }
 
 /** 内置兜底名单（构建时打进去，永远可用） */
-export const bundledDonations = (): Donation[] => listDonations()
+export const bundledDonations = (): DonationList => listDonations()

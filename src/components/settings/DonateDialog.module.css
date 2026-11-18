@@ -50,11 +50,23 @@
   border-top: 1px solid var(--dsw-alias-border-l1);
 }
 
-.listTitle {
+.listHeader {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
   margin-bottom: 8px;
+}
+
+.listTitle {
   font-size: 13px;
   font-weight: 600;
   color: var(--dsw-alias-label-primary);
+}
+
+.listUpdated {
+  font-size: 12px;
+  color: var(--dsw-alias-label-tertiary);
 }
 
 .listEmpty {
@@ -91,14 +103,6 @@
   color: var(--dsw-alias-label-primary);
 }
 
-.itemMessage {
-  flex: 1;
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  color: var(--dsw-alias-label-secondary);
-}
 
 .itemAmount {
   flex: none;

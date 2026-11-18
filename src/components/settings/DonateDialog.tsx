@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { useTranslate } from '../../i18n/index.js'
 import { Button } from '../base/Button.js'
 import { Modal } from '../base/Modal.js'
-import { bundledDonations, fetchDonations, type Donation } from '../../services/donations.js'
+import { bundledDonations, fetchDonations, type DonationList } from '../../services/donations.js'
 import qr from '../../assets/donate/qrcode.png'
 import styles from './DonateDialog.module.css'
 
@@ -18,18 +18,19 @@ import styles from './DonateDialog.module.css'
 export const DonateDialog = ({ onClose }: { onClose: () => void }) => {
   const t = useTranslate()
   // 先用内置名单渲染（不闪烁），再异步换成远端最新
-  const [donations, setDonations] = useState<Donation[]>(() => bundledDonations())
+  const [list, setList] = useState<DonationList>(() => bundledDonations())
   useEffect(() => {
     let alive = true
     void fetchDonations().then((remote) => {
       if (alive && remote) {
-        setDonations(remote)
+        setList(remote)
       }
     })
     return () => {
       alive = false
     }
   }, [])
+  const donations = list.items
 
   return (
     <Modal
@@ -51,15 +52,19 @@ export const DonateDialog = ({ onClose }: { onClose: () => void }) => {
       </div>
 
       <div className={styles.listSection}>
-        <div className={styles.listTitle}>{t('donateListTitle')}</div>
+        <div className={styles.listHeader}>
+          <span className={styles.listTitle}>{t('donateListTitle')}</span>
+          {list.updatedAt ? (
+            <span className={styles.listUpdated}>{t('donateListUpdated', { date: list.updatedAt })}</span>
+          ) : null}
+        </div>
         {donations.length === 0 ? (
           <div className={styles.listEmpty}>{t('donateListEmpty')}</div>
         ) : (
           <ul className={styles.list}>
-            {donations.map((item) => (
-              <li key={`${item.name}-${item.amount}-${item.date ?? ''}`} className={styles.item}>
+            {donations.map((item, index) => (
+              <li key={`${item.name}-${item.amount}-${index}`} className={styles.item}>
                 <span className={styles.itemName}>{item.name || t('donateAnonymous')}</span>
-                {item.message ? <span className={styles.itemMessage}>{item.message}</span> : null}
                 <span className={styles.itemAmount}>¥{item.amount.toFixed(2)}</span>
               </li>
             ))}

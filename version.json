@@ -1,14 +1,14 @@
 {
-  "version": "0.3.18",
-  "url": "https://github.com/JJJJJacobbbbb/ds-echo/releases/tag/v0.3.18",
-  "apk": "https://github.com/JJJJJacobbbbb/ds-echo/releases/download/v0.3.18/app-release.apk",
+  "version": "0.3.19",
+  "url": "https://github.com/JJJJJacobbbbb/ds-echo/releases/tag/v0.3.19",
+  "apk": "https://github.com/JJJJJacobbbbb/ds-echo/releases/download/v0.3.19/app-release.apk",
   "apkMirrors": [
-    "https://gh-proxy.com/https://github.com/JJJJJacobbbbb/ds-echo/releases/download/v0.3.18/app-release.apk",
-    "https://cors.isteed.cc/https://github.com/JJJJJacobbbbb/ds-echo/releases/download/v0.3.18/app-release.apk"
+    "https://gh-proxy.com/https://github.com/JJJJJacobbbbb/ds-echo/releases/download/v0.3.19/app-release.apk",
+    "https://cors.isteed.cc/https://github.com/JJJJJacobbbbb/ds-echo/releases/download/v0.3.19/app-release.apk"
   ],
-  "apkSha256": "fc297406455996e3d8930410b51971b759b15242ae4a03f497429ff95e47e366",
-  "apkSize": 5289611,
+  "apkSha256": "7e9f0b438a1ca4f8f2f5705d3cb8b84514dbe5e4df63c8d64772d00aa3802159",
+  "apkSize": 5289719,
   "landing": "https://wwbld.lanzouw.com/iFFVb4gg4inc",
   "landingCode": "h373",
-  "notes": "打赏名单改为远端读取"
+  "notes": "打赏名单只显示名称与金额，并显示更新时间"
 }

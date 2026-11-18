@@ -218,6 +218,7 @@ export const zh = {
   donateListTitle: '打赏名单',
   donateListEmpty: '还没有人打赏，你可以是第一个',
   donateListNote: '按金额从高到低排列；名单由作者手动维护，可能有延迟',
+  donateListUpdated: '更新于 {date}',
   donateAnonymous: '匿名',
   donateFootnote: '打赏不影响功能，也不代表任何服务承诺。谢谢。',
   voiceInputPermissionDenied: '无法使用麦克风。请在系统设置（或浏览器设置）中允许使用「麦克风」后重试',

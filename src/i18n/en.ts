@@ -228,6 +228,7 @@ export const en = {
   donateListTitle: 'Supporters',
   donateListEmpty: 'No one yet — you could be the first',
   donateListNote: 'Sorted by amount; maintained by hand, so it may lag behind',
+  donateListUpdated: 'Updated {date}',
   donateAnonymous: 'Anonymous',
   donateFootnote: 'Donations do not unlock features or promise anything. Thank you.',
   voiceInputPermissionDenied:
