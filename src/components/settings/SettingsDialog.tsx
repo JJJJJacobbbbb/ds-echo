@@ -41,6 +41,7 @@ import { AccountPanel } from './AccountPanel.js'
 import { DonateDialog } from './DonateDialog.js'
 import { RELEASES_URL, checkForUpdate, currentVersion, type UpdateResult } from '../../services/update.js'
 import { openTrustedUrl } from '../../services/external.js'
+import { canInstallInApp, installApk } from '../../services/apkInstaller.js'
 import { closeSettings, useSettingsDialog, type SettingsSection } from './settingsDialogState.js'
 import styles from './Settings.module.css'
 
@@ -648,7 +649,7 @@ const ExportHistory = ({ disabled }: { disabled: boolean }) => {
 /** 版本与更新：只在用户点击时请求 GitHub，不在后台自动检查（隐私） */
 const UpdateSetting = () => {
   const t = useTranslate()
-  const [state, setState] = useState<UpdateResult | 'checking' | null>(null)
+  const [state, setState] = useState<UpdateResult | 'checking' | 'installing' | null>(null)
 
   const label = t('updateSectionLabel')
   const version = currentVersion()
@@ -657,6 +658,9 @@ const UpdateSetting = () => {
   const status = ((): Status => {
     if (state === 'checking') {
       return { key: 'updateChecking' }
+    }
+    if (state === 'installing') {
+      return { key: 'updateInstalling' }
     }
     if (!state) {
       return { key: 'currentVersionLabel', params: { version } }
@@ -670,7 +674,13 @@ const UpdateSetting = () => {
     if (state.status === 'latest') {
       return { key: 'updateLatest', params: { version: state.version } }
     }
-    return { key: 'updateAvailable', params: { version: state.version } }
+    return {
+      key: 'updateAvailableSize',
+      params: {
+        version: state.version,
+        size: state.apkSize ? `${(state.apkSize / 1024 / 1024).toFixed(1)} MB` : '',
+      },
+    }
   })()
 
   return (
@@ -678,7 +688,7 @@ const UpdateSetting = () => {
       label={label}
       status={status}
       action={
-        state && state !== 'checking' && state.status === 'unavailable' ? (
+        state && state !== 'checking' && state !== 'installing' && state.status === 'unavailable' ? (
           <Button
             variant="outlined"
             size="m"
@@ -687,12 +697,27 @@ const UpdateSetting = () => {
           >
             {t('updateOpenReleases')}
           </Button>
-        ) : state && state !== 'checking' && state.status === 'outdated' ? (
+        ) : state && state !== 'checking' && state !== 'installing' && state.status === 'outdated' ? (
           <Button
             variant="primary"
             size="m"
             className={styles.cellButton}
-            onClick={() => void openTrustedUrl(state.url)}
+            onClick={() => {
+              const targets = state.apkMirrors?.length ? state.apkMirrors : []
+              const urls = [...targets, ...(state.apk ? [state.apk] : [])]
+              if (canInstallInApp() && state.apkSha256 && urls.length > 0) {
+                setState('installing')
+                void installApk(urls, state.apkSha256).then((result) => {
+                  if (result.status !== 'started') {
+                    setState({ status: 'unavailable', message: result.reason })
+                  }
+                  // 成功时保持「正在安装」直到系统安装器接管
+                })
+                return
+              }
+              // 浏览器（或没有校验值）时退回打开下载地址
+              void openTrustedUrl(state.apk ?? state.url)
+            }}
           >
             {t('updateDownload')}
           </Button>
@@ -701,7 +726,7 @@ const UpdateSetting = () => {
             variant="outlined"
             size="m"
             className={styles.cellButton}
-            disabled={state === 'checking'}
+            disabled={state === 'checking' || state === 'installing'}
             onClick={() => {
               setState('checking')
               void checkForUpdate().then(setState)

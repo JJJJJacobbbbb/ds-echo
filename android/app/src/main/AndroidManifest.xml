@@ -44,4 +44,6 @@
          页面只会拿到 NotAllowedError（表现为"无法使用麦克风"）。 -->
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
     <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />
+    <!-- 应用内更新：拉起系统安装器需要此权限（用户仍需在系统里允许一次"安装未知应用"） -->
+    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
 </manifest>

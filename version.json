@@ -1,5 +1,11 @@
 {
-  "version": "0.3.6",
-  "url": "https://github.com/JJJJJacobbbbb/ds-echo/releases/tag/v0.3.6",
-  "notes": "修复抽屉遮罩与底部安全区"
+  "version": "0.3.7",
+  "url": "https://github.com/JJJJJacobbbbb/ds-echo/releases/tag/v0.3.7",
+  "apk": "https://github.com/JJJJJacobbbbb/ds-echo/releases/download/v0.3.7/app-release.apk",
+  "apkMirrors": [
+    "https://gh-proxy.com/https://github.com/JJJJJacobbbbb/ds-echo/releases/download/v0.3.7/app-release.apk"
+  ],
+  "apkSha256": "60ccfcc4d3e2ee869bd450491d8bfd34c68c14a3196196ce044cde2a1278a3c6",
+  "apkSize": 5287923,
+  "notes": "应用内下载 APK，镜像加速"
 }

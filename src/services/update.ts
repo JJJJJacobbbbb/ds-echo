@@ -20,7 +20,21 @@ export const RELEASES_URL = `https://github.com/${UPDATE_REPO}/releases`
 export type UpdateResult =
   | { status: 'unconfigured' }
   | { status: 'latest'; version: string }
-  | { status: 'outdated'; version: string; url: string; notes: string }
+  | {
+      status: 'outdated'
+      version: string
+      /** 发布页地址（兜底） */
+      url: string
+      /** APK 直链（GitHub 原始地址） */
+      apk?: string
+      /** APK 镜像：按顺序尝试，第三方代理加速 */
+      apkMirrors?: string[]
+      /** 下载后必须匹配的 sha256（镜像不可信，必须校验） */
+      apkSha256?: string
+      /** APK 体积（字节），用于在界面上提示 */
+      apkSize?: number
+      notes: string
+    }
   | { status: 'unavailable'; message: string }
 
 /** 当前版本（构建时由 rspack/vitest 从 package.json 注入） */
@@ -55,19 +69,52 @@ export const isNewer = (a: string, b: string): boolean => {
   return false
 }
 
-type ReleaseInfo = { version: string; url: string; notes: string }
+type ReleaseInfo = {
+  version: string
+  url: string
+  notes: string
+  apk?: string
+  apkMirrors?: string[]
+  apkSha256?: string
+  apkSize?: number
+}
 
 const decide = (info: ReleaseInfo, current: string): UpdateResult =>
   isNewer(info.version, current)
-    ? { status: 'outdated', version: info.version, url: info.url, notes: info.notes }
+    ? {
+        status: 'outdated',
+        version: info.version,
+        url: info.url,
+        ...(info.apk ? { apk: info.apk } : {}),
+        ...(info.apkMirrors?.length ? { apkMirrors: info.apkMirrors } : {}),
+        ...(info.apkSha256 ? { apkSha256: info.apkSha256 } : {}),
+        ...(info.apkSize ? { apkSize: info.apkSize } : {}),
+        notes: info.notes,
+      }
     : { status: 'latest', version: current }
 
-/** 主路径：仓库里的 version.json（无速率限制） */
+/**
+ * 版本清单的候选地址，按顺序尝试：
+ * 1. jsDelivr（CDN 镜像，国内通常可达，无速率限制）
+ * 2. raw.githubusercontent.com（官方 CDN，可能有几分钟缓存延迟）
+ */
+const manifestUrls = (): string[] => [
+  `https://cdn.jsdelivr.net/gh/${UPDATE_REPO}@main/version.json`,
+  `https://raw.githubusercontent.com/${UPDATE_REPO}/main/version.json`,
+]
+
 const readManifest = async (signal: AbortSignal): Promise<ReleaseInfo | null> => {
-  const response = await fetch(
-    `https://raw.githubusercontent.com/${UPDATE_REPO}/main/version.json`,
-    { signal, cache: 'no-store' }
-  )
+  for (const url of manifestUrls()) {
+    const info = await readManifestFrom(url, signal).catch(() => null)
+    if (info) {
+      return info
+    }
+  }
+  return null
+}
+
+const readManifestFrom = async (url: string, signal: AbortSignal): Promise<ReleaseInfo | null> => {
+  const response = await fetch(url, { signal, cache: 'no-store' })
   if (!response.ok) {
     return null
   }
@@ -75,6 +122,10 @@ const readManifest = async (signal: AbortSignal): Promise<ReleaseInfo | null> =>
     version?: string
     url?: string
     notes?: string
+    apk?: string
+    apkMirrors?: string[]
+    apkSha256?: string
+    apkSize?: number
   }
   if (!data.version) {
     return null
@@ -83,6 +134,10 @@ const readManifest = async (signal: AbortSignal): Promise<ReleaseInfo | null> =>
     version: data.version,
     url: data.url || RELEASES_URL,
     notes: data.notes ?? '',
+    ...(data.apk ? { apk: data.apk } : {}),
+    ...(Array.isArray(data.apkMirrors) ? { apkMirrors: data.apkMirrors.filter(Boolean) } : {}),
+    ...(data.apkSha256 ? { apkSha256: data.apkSha256 } : {}),
+    ...(typeof data.apkSize === 'number' ? { apkSize: data.apkSize } : {}),
   }
 }
 
@@ -99,15 +154,32 @@ const readApi = async (signal: AbortSignal): Promise<ReleaseInfo | null> => {
     tag_name?: string
     html_url?: string
     body?: string
+    assets?: {
+      name?: string
+      browser_download_url?: string
+      size?: number
+      /** GitHub 现在会给资源算摘要，形如 "sha256:xxxx" */
+      digest?: string
+    }[]
   }
   const version = (data.tag_name ?? '').replace(/^v/i, '')
   if (!version) {
     return null
   }
+  // 优先 apk 资源：直接开直链，用户少点一次、也不用在发布页里找文件
+  const apk = data.assets?.find((asset) => (asset.name ?? '').toLowerCase().endsWith('.apk'))
+  const downloadUrl = apk?.browser_download_url
+  // digest 形如 "sha256:abc..."；没有就不带，界面会退回打开下载地址
+  const digest = apk?.digest?.startsWith('sha256:') ? apk.digest.slice('sha256:'.length) : undefined
   return {
     version,
     url: data.html_url || RELEASES_URL,
     notes: (data.body ?? '').slice(0, 500),
+    ...(downloadUrl ? { apk: downloadUrl } : {}),
+    // API 不提供镜像列表，这里按同样的镜像前缀拼一个（与 version.json 的做法一致）
+    ...(downloadUrl ? { apkMirrors: [`https://gh-proxy.com/${downloadUrl}`] } : {}),
+    ...(digest ? { apkSha256: digest } : {}),
+    ...(typeof apk?.size === 'number' ? { apkSize: apk.size } : {}),
   }
 }
 

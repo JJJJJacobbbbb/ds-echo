@@ -31,6 +31,8 @@ public class MainActivity extends BridgeActivity {
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         // 让页面铺到状态栏/导航栏下方，inset 由本类负责转成 CSS 变量
+        // 应用内更新用：下载 APK 并拉起系统安装器
+        registerPlugin(ApkInstallerPlugin.class);
         WindowCompat.setDecorFitsSystemWindows(getWindow(), false);
         applyInsetsToWebView();
     }
