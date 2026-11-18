@@ -669,7 +669,10 @@ const UpdateSetting = () => {
       return { key: 'updateUnconfigured' }
     }
     if (state.status === 'unavailable') {
-      return { key: 'updateUnavailable', params: { tried: state.tried } }
+      // tried=0 表示不是"检查失败"，而是安装环节出错，要显示真实原因
+      return state.tried > 0
+        ? { key: 'updateUnavailable', params: { tried: state.tried } }
+        : { key: 'updateInstallFailed', params: { reason: state.message }, error: true }
     }
     if (state.status === 'latest') {
       return { key: 'updateLatest', params: { version: state.version } }

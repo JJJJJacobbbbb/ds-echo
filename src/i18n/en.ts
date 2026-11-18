@@ -208,6 +208,7 @@ export const en = {
   updateDownload: 'Update now',
   updateInstalling: 'Downloading and verifying; the system installer will appear…',
   updateUnconfigured: 'Repository not configured (set UPDATE_REPO)',
+  updateInstallFailed: 'Update failed: {reason}',
   updateUnavailable: 'Cannot check right now (tried {tried} sources, all unreachable) — open releases manually',
   updateOpenReleases: 'Open releases',
   updateOpenLanding: 'Mirror download page',

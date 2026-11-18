@@ -198,6 +198,7 @@ export const zh = {
   updateDownload: '立即更新',
   updateInstalling: '正在下载并校验，完成后会弹出系统安装器…',
   updateUnconfigured: '未配置仓库地址（开源后填写 UPDATE_REPO）',
+  updateInstallFailed: '更新失败：{reason}',
   updateUnavailable: '暂时无法检查（已尝试 {tried} 个源，均不可达），可前往发布页手动查看',
   updateOpenReleases: '打开发布页',
   updateOpenLanding: '备用下载页',
