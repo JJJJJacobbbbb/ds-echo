@@ -669,7 +669,7 @@ const UpdateSetting = () => {
       return { key: 'updateUnconfigured' }
     }
     if (state.status === 'unavailable') {
-      return { key: 'updateUnavailable' }
+      return { key: 'updateUnavailable', params: { tried: state.tried } }
     }
     if (state.status === 'latest') {
       return { key: 'updateLatest', params: { version: state.version } }
@@ -709,7 +709,7 @@ const UpdateSetting = () => {
                 setState('installing')
                 void installApk(urls, state.apkSha256).then((result) => {
                   if (result.status !== 'started') {
-                    setState({ status: 'unavailable', message: result.reason })
+                    setState({ status: 'unavailable', message: result.reason, tried: 0 })
                   }
                   // 成功时保持「正在安装」直到系统安装器接管
                 })

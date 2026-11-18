@@ -208,7 +208,7 @@ export const en = {
   updateDownload: 'Update now',
   updateInstalling: 'Downloading and verifying; the system installer will appear…',
   updateUnconfigured: 'Repository not configured (set UPDATE_REPO)',
-  updateUnavailable: 'Cannot check right now (network or GitHub rate limit) — open releases manually',
+  updateUnavailable: 'Cannot check right now (tried {tried} sources, all unreachable) — open releases manually',
   updateOpenReleases: 'Open releases',
   updateFailed: 'Check failed: {message}',
   currentVersionLabel: 'Version {version}',

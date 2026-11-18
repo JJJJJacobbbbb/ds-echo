@@ -35,7 +35,7 @@ export type UpdateResult =
       apkSize?: number
       notes: string
     }
-  | { status: 'unavailable'; message: string }
+  | { status: 'unavailable'; message: string; tried: number }
 
 /** 当前版本（构建时由 rspack/vitest 从 package.json 注入） */
 export const currentVersion = (): string =>
@@ -98,10 +98,20 @@ const decide = (info: ReleaseInfo, current: string): UpdateResult =>
  * 1. jsDelivr（CDN 镜像，国内通常可达，无速率限制）
  * 2. raw.githubusercontent.com（官方 CDN，可能有几分钟缓存延迟）
  */
-const manifestUrls = (): string[] => [
-  `https://cdn.jsdelivr.net/gh/${UPDATE_REPO}@main/version.json`,
-  `https://raw.githubusercontent.com/${UPDATE_REPO}/main/version.json`,
-]
+const manifestUrls = (): string[] => {
+  // jsDelivr 对 @main 有缓存，加时间戳让每个节点都回源（各节点缓存互相独立）
+  const bust = `?t=${Date.now()}`
+  const raw = `https://raw.githubusercontent.com/${UPDATE_REPO}/main/version.json`
+  return [
+    `https://cdn.jsdelivr.net/gh/${UPDATE_REPO}@main/version.json${bust}`,
+    `https://fastly.jsdelivr.net/gh/${UPDATE_REPO}@main/version.json${bust}`,
+    `https://gcore.jsdelivr.net/gh/${UPDATE_REPO}@main/version.json${bust}`,
+    `https://testingcf.jsdelivr.net/gh/${UPDATE_REPO}@main/version.json${bust}`,
+    `https://raw.githack.com/${UPDATE_REPO}/main/version.json${bust}`,
+    `https://gh-proxy.com/${raw}`,
+    raw,
+  ]
+}
 
 const readManifest = async (signal: AbortSignal): Promise<ReleaseInfo | null> => {
   for (const url of manifestUrls()) {
@@ -176,8 +186,15 @@ const readApi = async (signal: AbortSignal): Promise<ReleaseInfo | null> => {
     url: data.html_url || RELEASES_URL,
     notes: (data.body ?? '').slice(0, 500),
     ...(downloadUrl ? { apk: downloadUrl } : {}),
-    // API 不提供镜像列表，这里按同样的镜像前缀拼一个（与 version.json 的做法一致）
-    ...(downloadUrl ? { apkMirrors: [`https://gh-proxy.com/${downloadUrl}`] } : {}),
+    // API 不提供镜像列表，这里按同样的代理前缀拼（只在实测能返回 APK 字节的代理上）
+    ...(downloadUrl
+      ? {
+          apkMirrors: [
+            `https://gh-proxy.com/${downloadUrl}`,
+            `https://cors.isteed.cc/${downloadUrl}`,
+          ],
+        }
+      : {}),
     ...(digest ? { apkSha256: digest } : {}),
     ...(typeof apk?.size === 'number' ? { apkSize: apk.size } : {}),
   }
@@ -199,11 +216,16 @@ export const checkForUpdate = async (): Promise<UpdateResult> => {
     if (manifest) {
       return decide(manifest, current)
     }
-    return { status: 'unavailable', message: 'network' }
+    return {
+      status: 'unavailable',
+      message: 'network',
+      tried: manifestUrls().length + 1,
+    }
   } catch (error) {
     return {
       status: 'unavailable',
       message: error instanceof Error ? error.message : String(error),
+      tried: manifestUrls().length + 1,
     }
   } finally {
     clearTimeout(timer)

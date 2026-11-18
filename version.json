@@ -1,11 +1,12 @@
 {
-  "version": "0.3.11",
-  "url": "https://github.com/JJJJJacobbbbb/ds-echo/releases/tag/v0.3.11",
-  "apk": "https://github.com/JJJJJacobbbbb/ds-echo/releases/download/v0.3.11/app-release.apk",
+  "version": "0.3.12",
+  "url": "https://github.com/JJJJJacobbbbb/ds-echo/releases/tag/v0.3.12",
+  "apk": "https://github.com/JJJJJacobbbbb/ds-echo/releases/download/v0.3.12/app-release.apk",
   "apkMirrors": [
-    "https://gh-proxy.com/https://github.com/JJJJJacobbbbb/ds-echo/releases/download/v0.3.11/app-release.apk"
+    "https://gh-proxy.com/https://github.com/JJJJJacobbbbb/ds-echo/releases/download/v0.3.12/app-release.apk",
+    "https://cors.isteed.cc/https://github.com/JJJJJacobbbbb/ds-echo/releases/download/v0.3.12/app-release.apk"
   ],
-  "apkSha256": "3995ade7d46d3277c5a773ac493f44b990c4c51c569c6440aa5b32a0cc8ea189",
-  "apkSize": 5289135,
-  "notes": "侧边栏铺满全高；设置弹窗高度上限修复"
+  "apkSha256": "2cb30006cbcdbd833583cd4622958efbc0079ebe11ca7ecd405ba334fd10bbb6",
+  "apkSize": 5289267,
+  "notes": "更多下载镜像"
 }
