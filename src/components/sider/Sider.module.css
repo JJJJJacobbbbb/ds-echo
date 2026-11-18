@@ -205,6 +205,13 @@
   position: absolute;
   inset: 0;
   z-index: 799;
+  /* 没有背景色时遮罩等于不存在：抽屉打开后聊天界面不会变暗，
+     还会从右侧"透"出来（真机踩过）。与 Modal 的遮罩保持同一浓度。 */
+  background-color: rgba(0, 0, 0, 0.36);
+
+  [data-ds-dark-theme] & {
+    background-color: rgba(0, 0, 0, 0.6);
+  }
 }
 
 .mobile {
