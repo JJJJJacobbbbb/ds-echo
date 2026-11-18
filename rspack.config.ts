@@ -1,5 +1,6 @@
 import { readFileSync } from 'node:fs'
 import path from 'node:path'
+import pkg from './package.json' with { type: 'json' }
 import { fileURLToPath } from 'node:url'
 import { defineConfig } from '@rspack/cli'
 import { rspack, type Configuration } from '@rspack/core'
@@ -54,6 +55,8 @@ export const createConfig = ({
     parser: { 'css/module': { namedExports: false } },
     generator: { 'css/module': { localIdentName: '[local]-[hash:6]' } },
     rules: [
+      // 图片（收款码占位图等）走资源模块：输出到 static/media 并返回 URL
+      { test: /\.(png|jpe?g|gif|webp|svg)$/, type: 'asset/resource' },
       { test: /\.module\.css$/, type: 'css/module', use: [cssLoader] },
       { test: /\.css$/, exclude: /\.module\.css$/, type: 'css', use: [cssLoader] },
       {
@@ -80,7 +83,11 @@ export const createConfig = ({
       scriptLoading: 'defer',
       meta: { 'application-version': version },
     }),
-    new rspack.DefinePlugin({ __API_ORIGIN__: JSON.stringify(apiOrigin) }),
+    new rspack.DefinePlugin({
+        __API_ORIGIN__: JSON.stringify(apiOrigin),
+        // 版本号从 package.json 注入，检查更新时与 GitHub Release 比对
+        __APP_VERSION__: JSON.stringify(pkg.version),
+      }),
     new rspack.CopyRspackPlugin({
       patterns: [{ from: path.resolve(root, 'LICENSE'), to: 'LICENSE', toType: 'file' }],
     }),

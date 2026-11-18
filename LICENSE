@@ -19,3 +19,14 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
+
+---
+
+DS Echo is a derivative work based on deepseek-ai/chat-demo
+(https://github.com/deepseek-ai/chat-demo), which is licensed under MIT and
+whose original copyright notice is reproduced above.
+
+Session memory is ported from dsh-persona-memory (MIT):
+https://www.npmjs.com/package/dsh-persona-memory
+Its on-disk format is compatible with pi-hermes-memory (MIT):
+https://github.com/chandra447/pi-hermes-memory

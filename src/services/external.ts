@@ -22,7 +22,7 @@ export const OFFICIAL_URL = {
 export type OfficialPage = keyof typeof OFFICIAL_URL
 
 /** 允许打开的主机名。子域放行，其他一律拒绝。 */
-const ALLOWED_HOSTS = ['platform.deepseek.com', 'chat.deepseek.com', 'www.deepseek.com', 'deepseek.com']
+const ALLOWED_HOSTS = ['platform.deepseek.com', 'chat.deepseek.com', 'www.deepseek.com', 'deepseek.com', 'github.com']
 
 export const isAllowedExternalUrl = (url: string): boolean => {
   let parsed: URL
@@ -45,6 +45,18 @@ export const openOfficialPage = async (page: OfficialPage): Promise<void> => {
   const url = OFFICIAL_URL[page]
   if (!isAllowedExternalUrl(url)) {
     throw new Error(`拒绝打开非官方地址：${url}`)
+  }
+  await Browser.open({ url })
+}
+
+
+/**
+ * 打开受信任的外部地址（更新下载、项目主页）。
+ * 与 openOfficialPage 共用同一份主机白名单：宁可少开，也不放开任意 URL。
+ */
+export const openTrustedUrl = async (url: string): Promise<void> => {
+  if (!isAllowedExternalUrl(url)) {
+    throw new Error(`拒绝打开未授权地址：${url}`)
   }
   await Browser.open({ url })
 }

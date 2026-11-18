@@ -9,7 +9,8 @@ import { defineConfig } from 'vitest/config'
  */
 export default defineConfig({
   define: {
-    __API_ORIGIN__: JSON.stringify('https://api.deepseek.com'),
+    __APP_VERSION__: JSON.stringify('0.0.0-test'),
+      __API_ORIGIN__: JSON.stringify('https://api.deepseek.com'),
   },
   test: {
     environment: 'node',

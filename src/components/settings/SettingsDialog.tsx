@@ -38,6 +38,9 @@ import { showToast } from '../base/toastState.js'
 import { saveFileForUser } from '../../services/fileSave.js'
 import { ApiKeyConfirm, ApiKeyField, useApiKeyEditor } from './ApiKeyField.js'
 import { AccountPanel } from './AccountPanel.js'
+import { DonateDialog } from './DonateDialog.js'
+import { checkForUpdate, currentVersion, type UpdateResult } from '../../services/update.js'
+import { openTrustedUrl } from '../../services/external.js'
 import { closeSettings, useSettingsDialog, type SettingsSection } from './settingsDialogState.js'
 import styles from './Settings.module.css'
 
@@ -113,6 +116,8 @@ const SettingsContent = () => {
               <LocaleSetting />
               <TtsVoiceSetting />
               <LocationSetting />
+              <UpdateSetting />
+              <DonateSetting />
             </>
           ) : (
             <>
@@ -638,3 +643,85 @@ const ExportHistory = ({ disabled }: { disabled: boolean }) => {
 
 
 
+
+
+/** 版本与更新：只在用户点击时请求 GitHub，不在后台自动检查（隐私） */
+const UpdateSetting = () => {
+  const t = useTranslate()
+  const [state, setState] = useState<UpdateResult | 'checking' | null>(null)
+
+  const label = t('updateSectionLabel')
+  const version = currentVersion()
+
+  // 显式返回类型：避免各分支 params 被推断成联合类型（message?: undefined 不兼容）
+  const status = ((): Status => {
+    if (state === 'checking') {
+      return { key: 'updateChecking' }
+    }
+    if (!state) {
+      return { key: 'currentVersionLabel', params: { version } }
+    }
+    if (state.status === 'unconfigured') {
+      return { key: 'updateUnconfigured' }
+    }
+    if (state.status === 'error') {
+      return { key: 'updateFailed', params: { message: state.message }, error: true }
+    }
+    if (state.status === 'latest') {
+      return { key: 'updateLatest', params: { version: state.version } }
+    }
+    return { key: 'updateAvailable', params: { version: state.version } }
+  })()
+
+  return (
+    <SettingCell
+      label={label}
+      status={status}
+      action={
+        state && state !== 'checking' && state.status === 'outdated' ? (
+          <Button
+            variant="primary"
+            size="m"
+            className={styles.cellButton}
+            onClick={() => void openTrustedUrl(state.url)}
+          >
+            {t('updateDownload')}
+          </Button>
+        ) : (
+          <Button
+            variant="outlined"
+            size="m"
+            className={styles.cellButton}
+            disabled={state === 'checking'}
+            onClick={() => {
+              setState('checking')
+              void checkForUpdate().then(setState)
+            }}
+          >
+            {t('updateCheck')}
+          </Button>
+        )
+      }
+    />
+  )
+}
+
+/** 打赏：金额快捷项 + 收款码，支付在用户自己的扫码里完成 */
+const DonateSetting = () => {
+  const t = useTranslate()
+  const [open, setOpen] = useState(false)
+  return (
+    <>
+      <SettingCell
+        label={t('donateSectionLabel')}
+        status={null}
+        action={
+          <Button variant="outlined" size="m" className={styles.cellButton} onClick={() => setOpen(true)}>
+            {t('donateAction')}
+          </Button>
+        }
+      />
+      {open ? <DonateDialog onClose={() => setOpen(false)} /> : null}
+    </>
+  )
+}
