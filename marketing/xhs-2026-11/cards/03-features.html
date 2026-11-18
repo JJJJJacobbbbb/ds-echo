@@ -1,0 +1,207 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <link rel="stylesheet" href="card.css" />
+    <style>
+      /* 图 3：四个亮点。等信息卡片式排版，一屏能扫完。 */
+      .page {
+        padding: 80px 78px 58px;
+      }
+
+      h1 {
+        font-size: 88px;
+        font-weight: 900;
+        line-height: 1.12;
+        letter-spacing: -0.02em;
+      }
+      h1 em {
+        font-style: normal;
+        color: var(--hot);
+      }
+      .sub {
+        margin-top: 18px;
+        font-size: 34px;
+        color: var(--ink-2);
+      }
+
+      .grid {
+        margin-top: 46px;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 22px;
+      }
+
+      .cell {
+        background: var(--paper-2);
+        border: 2px solid var(--line);
+        border-radius: 30px;
+        padding: 34px 32px 36px;
+        display: flex;
+        flex-direction: column;
+      }
+      .cell .idx {
+        font-size: 24px;
+        font-weight: 900;
+        color: var(--hot);
+        letter-spacing: 0.14em;
+        font-family: "Cascadia Mono", Consolas, monospace;
+      }
+      .cell .t {
+        margin-top: 10px;
+        font-size: 42px;
+        font-weight: 900;
+        line-height: 1.24;
+        letter-spacing: -0.01em;
+      }
+      .cell .d {
+        margin-top: 16px;
+        font-size: 28px;
+        line-height: 1.6;
+        color: var(--ink-2);
+      }
+      .cell .d b {
+        color: var(--ink);
+      }
+      .cell.dark {
+        background: var(--dark);
+        border-color: #33333c;
+      }
+      .cell.dark .t {
+        color: #fff;
+      }
+      .cell.dark .d {
+        color: #b3afa6;
+      }
+      .cell.dark .d b {
+        color: #fff;
+      }
+      .cell.dark .idx {
+        color: #ff8a63;
+      }
+
+      .tags {
+        margin-top: 18px;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+      .tags span {
+        font-size: 25px;
+        font-weight: 700;
+        padding: 9px 15px;
+        border-radius: 10px;
+        background: #efece4;
+      }
+      .cell.dark .tags span {
+        background: #2c2c34;
+        color: #d8d5cf;
+      }
+
+      /* 一句话总结：垫在四宫格和页脚之间。深色块收尾，也给整页一个情绪落点 */
+      .quote {
+        margin-top: 40px;
+        background: var(--dark);
+        color: #fff;
+        border-radius: 30px;
+        padding: 34px 36px 36px;
+      }
+      .quote .q {
+        font-size: 34px;
+        font-weight: 900;
+        line-height: 1.5;
+        letter-spacing: -0.01em;
+      }
+      .quote .who {
+        margin-top: 12px;
+        font-size: 26px;
+        color: #9b978f;
+      }
+      .quote b {
+        color: #ff8a63;
+      }
+
+      .bottom {
+        margin-top: auto;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        border-top: 2px solid var(--line);
+        padding-top: 24px;
+      }
+      .bottom .l {
+        font-size: 27px;
+        color: var(--ink-2);
+        line-height: 1.45;
+      }
+      .bottom .r {
+        font-size: 28px;
+        font-weight: 700;
+        color: var(--ink);
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+      .mono {
+        font-family: "Cascadia Mono", Consolas, monospace;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="page">
+      <h1>它能干这四件事</h1>
+      <p class="sub">都是我自己被卡过的点</p>
+
+      <div class="grid">
+        <div class="cell">
+          <span class="idx">01</span>
+          <h2 class="t">官方 ZIP<br />直接导进去</h2>
+          <p class="d">
+            按对话自动合并去重，<b>不覆盖</b>你原有记录，导入前先给你预览新增几条、跳过几条。
+          </p>
+          <div class="tags"><span>预览</span><span>去重</span><span>可再导出</span></div>
+        </div>
+
+        <div class="cell dark">
+          <span class="idx">02</span>
+          <h2 class="t">三条限制<br />在这里不存在</h2>
+          <p class="d">
+            走你自己的 API 通道：<b>没有 7 天过期、没有 4 万字输入上限、没有每日额度</b>。
+          </p>
+          <div class="tags"><span>无 7 天</span><span>无字数上限</span><span>无日额度</span></div>
+        </div>
+
+        <div class="cell">
+          <span class="idx">03</span>
+          <h2 class="t">256K 上下文<br />+ 记忆自提炼</h2>
+          <p class="d">
+            超出上限时自动把早期对话压成「会话记忆」注入背景，<b>聊再久也不丢核心设定</b>。
+          </p>
+          <div class="tags"><span>长记忆</span><span>自动压缩</span></div>
+        </div>
+
+        <div class="cell">
+          <span class="idx">04</span>
+          <h2 class="t">纯本地<br />开源可查</h2>
+          <p class="d">
+            没有服务器、不统计任何数据。聊天记录和 Key 全在你手机里，Key 走系统加密存储。
+          </p>
+          <div class="tags"><span>无后端</span><span>Key 本机加密</span></div>
+        </div>
+      </div>
+
+      <div class="quote">
+        <p class="q">官方<b>不让续</b>的，换成你自己的 Key 接着续。</p>
+        <p class="who">这就是我写它的原因 —— 说到底是把你自己的记录，还给你自己。</p>
+      </div>
+
+      <div class="bottom">
+        <div class="l">
+          安卓用 · MIT 开源 · 软件本身不收费<br />
+          只有 DeepSeek 官方按用量扣费
+        </div>
+        <div class="r">GitHub 搜 <span class="mono" style="font-size: 28px">ds-echo</span></div>
+      </div>
+    </div>
+  </body>
+</html>

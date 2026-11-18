@@ -1,0 +1,252 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <link rel="stylesheet" href="card.css" />
+    <style>
+      /* 图 2：3 步拿 API Key。
+         每步 = 序号 + 标题 + 一句人话 + 一条"点哪几下"的路径条。
+         路径条用 pills 画，不假装是真实截图，避免误导也不怕平台改版。 */
+      .page {
+        padding: 80px 78px 58px;
+      }
+
+      .head {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+      }
+      h1 {
+        font-size: 92px;
+        font-weight: 900;
+        line-height: 1.1;
+        letter-spacing: -0.02em;
+      }
+      h1 em {
+        font-style: normal;
+        color: var(--hot);
+      }
+      .sub {
+        margin-top: 20px;
+        font-size: 34px;
+        color: var(--ink-2);
+      }
+      .badge {
+        flex: none;
+        margin-top: 10px;
+        padding: 14px 24px;
+        border-radius: 18px;
+        background: var(--ink);
+        color: #fff;
+        font-size: 26px;
+        font-weight: 700;
+        line-height: 1.35;
+        text-align: center;
+      }
+
+      .steps {
+        margin-top: 44px;
+        display: flex;
+        flex-direction: column;
+        gap: 24px;
+      }
+
+      .step {
+        background: var(--paper-2);
+        border: 2px solid var(--line);
+        border-radius: 30px;
+        padding: 30px 34px;
+        position: relative;
+      }
+
+      .sh {
+        display: flex;
+        align-items: center;
+        gap: 18px;
+      }
+      .num {
+        flex: none;
+        width: 62px;
+        height: 62px;
+        border-radius: 50%;
+        background: var(--hot);
+        color: #fff;
+        font-size: 32px;
+        font-weight: 900;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .st {
+        font-size: 44px;
+        font-weight: 900;
+        letter-spacing: -0.01em;
+      }
+      .body {
+        margin-top: 14px;
+        padding-left: 80px;
+        font-size: 30px;
+        line-height: 1.55;
+        color: var(--ink-2);
+      }
+      .body b {
+        color: var(--ink);
+      }
+
+      .path {
+        margin-top: 20px;
+        margin-left: 80px;
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 10px;
+        padding: 16px 20px;
+        background: #fff;
+        border: 2px dashed var(--line);
+        border-radius: 18px;
+        font-size: 26px;
+      }
+      .p {
+        padding: 10px 18px;
+        border-radius: 12px;
+        background: #efece4;
+        font-weight: 700;
+        color: var(--ink);
+      }
+      .p.hot {
+        background: var(--hot-soft);
+        color: var(--hot);
+        border: 2px solid var(--hot);
+      }
+      .p.ok {
+        background: var(--ok-soft);
+        color: var(--ok);
+        border: 2px solid var(--ok);
+      }
+      .p.mono {
+        font-family: "Cascadia Mono", Consolas, monospace;
+        letter-spacing: 0.02em;
+      }
+      .arrow {
+        color: var(--ink-3);
+        font-weight: 900;
+      }
+
+      /* 第一步里的"只显示一次"小警示，贴在该步右上角 */
+      .warn {
+        position: absolute;
+        right: 30px;
+        top: -18px;
+        background: var(--hot);
+        color: #fff;
+        font-size: 24px;
+        font-weight: 800;
+        padding: 10px 18px;
+        border-radius: 999px;
+        transform: rotate(1.6deg);
+      }
+
+      .bottom {
+        margin-top: auto;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        border-top: 2px solid var(--line);
+        padding-top: 24px;
+      }
+      .bottom .l {
+        font-size: 27px;
+        color: var(--ink-2);
+        line-height: 1.45;
+      }
+      .bottom .l b {
+        color: var(--ink);
+      }
+      .bottom .r {
+        font-size: 30px;
+        font-weight: 900;
+        color: var(--ink);
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="page">
+      <div class="head">
+        <div>
+          <h1>3 步拿到<br /><em>API Key</em></h1>
+          <p class="sub">比注册一个账号，只多一步</p>
+        </div>
+        <div class="badge">App 首屏<br />就是这三步</div>
+      </div>
+
+      <div class="steps">
+        <section class="step">
+          <span class="warn">只显示这一次</span>
+          <div class="sh">
+            <span class="num">1</span>
+            <h2 class="st">去官方平台建一个 Key</h2>
+          </div>
+          <p class="body">
+            打开 <b>platform.deepseek.com</b> 登录，左侧「API keys」→「创建 API key」→ 随便起个名字，弹窗里那串 <b>sk- 开头</b>就是了。
+          </p>
+          <div class="path">
+            <span class="p">API keys</span>
+            <span class="arrow">→</span>
+            <span class="p hot">创建 API key</span>
+            <span class="arrow">→</span>
+            <span class="p mono">sk-••••••••</span>
+            <span class="arrow">→</span>
+            <span class="p">复制</span>
+          </div>
+        </section>
+
+        <section class="step">
+          <div class="sh">
+            <span class="num">2</span>
+            <h2 class="st">充点钱，按量计费</h2>
+          </div>
+          <p class="body">
+            左侧「充值」，充 <b>10 块</b>。没有月费、套餐、会员；<b>不用不花</b>，新号还可能带赠送额度。
+          </p>
+          <div class="path">
+            <span class="p">充值</span>
+            <span class="arrow">→</span>
+            <span class="p hot">10 元</span>
+            <span class="arrow">→</span>
+            <span class="p">扫码付款</span>
+            <span class="arrow">→</span>
+            <span class="p ok">用多少扣多少</span>
+          </div>
+        </section>
+
+        <section class="step">
+          <div class="sh">
+            <span class="num">3</span>
+            <h2 class="st">粘进 App，点「验证并连接」</h2>
+          </div>
+          <p class="body">
+            打开 DS Echo，首屏就是这个向导。粘好点连接，它会自动查一次余额 —— <b>看到余额数字就说明成功了</b>，不用你猜。
+          </p>
+          <div class="path">
+            <span class="p mono">粘贴 sk-••••</span>
+            <span class="arrow">→</span>
+            <span class="p hot">验证并连接</span>
+            <span class="arrow">→</span>
+            <span class="p ok">✓ 余额已显示</span>
+          </div>
+        </section>
+      </div>
+
+      <div class="bottom">
+        <div class="l">
+          Key 相当于钱包密码，<b>别发群、别让截图露出完整字符</b><br />
+          露了回平台删掉重建，一秒的事
+        </div>
+        <div class="r">GitHub 搜 <span class="p mono" style="font-size: 28px">ds-echo</span></div>
+      </div>
+    </div>
+  </body>
+</html>
