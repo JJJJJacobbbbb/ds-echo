@@ -38,4 +38,10 @@
     <!-- Permissions -->
 
     <uses-permission android:name="android.permission.INTERNET" />
+    <!-- 语音输入：WebView 的 getUserMedia(audio) 需要这两项。
+         Capacitor 的 BridgeWebChromeClient 会在收到 AUDIO_CAPTURE 请求时通过
+         permissionLauncher 申请它们；**若清单里没声明，系统直接拒绝且不弹窗**，
+         页面只会拿到 NotAllowedError（表现为"无法使用麦克风"）。 -->
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />
 </manifest>

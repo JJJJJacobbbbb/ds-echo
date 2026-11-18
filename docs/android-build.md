@@ -86,3 +86,31 @@ adb install -r android\app\build\outputs\apk\debug\app-debug.apk
 ## 6. 尚未验证
 
 - 真机启动、WebView 内 SSE 流式接收、文件选择器、返回键 —— 需要插上手机（`adb devices` 当前为空）。
+
+
+## 麦克风权限（2026-11-18 踩坑）
+
+现象：手机上点语音输入，提示"无法使用麦克风，请在浏览器设置中允许访问"。
+
+根因：`AndroidManifest.xml` 里只有 `INTERNET`，**没有声明 `RECORD_AUDIO`**。
+链路是：
+
+```
+getUserMedia(audio) → WebView onPermissionRequest(AUDIO_CAPTURE)
+→ Capacitor 的 BridgeWebChromeClient 去 permissionLauncher.launch([MODIFY_AUDIO_SETTINGS, RECORD_AUDIO])
+→ 清单里没声明 → Android 直接拒绝，**连系统弹窗都不出现**
+→ 页面拿到 NotAllowedError
+```
+
+修复：清单加
+
+```xml
+<uses-permission android:name="android.permission.RECORD_AUDIO" />
+<uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />
+```
+
+验证：安装后 `dumpsys package` 显示 `RECORD_AUDIO: granted=false`，
+点语音 → 系统权限弹窗 → 允许后正常录音。
+
+教训：Capacitor 会代为申请 WebView 要求的权限，但**必须先写进清单**；
+否则是"静默拒绝"，表现成页面里的权限错误，很难从错误信息反推。
