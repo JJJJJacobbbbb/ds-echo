@@ -39,7 +39,7 @@ import { saveFileForUser } from '../../services/fileSave.js'
 import { ApiKeyConfirm, ApiKeyField, useApiKeyEditor } from './ApiKeyField.js'
 import { AccountPanel } from './AccountPanel.js'
 import { DonateDialog } from './DonateDialog.js'
-import { LANDING_URL, RELEASES_URL, checkForUpdate, currentVersion, type UpdateResult } from '../../services/update.js'
+import { LANDING_PASSWORD, LANDING_URL, RELEASES_URL, checkForUpdate, currentVersion, type UpdateResult } from '../../services/update.js'
 import { openTrustedUrl } from '../../services/external.js'
 import { canInstallInApp, installApk } from '../../services/apkInstaller.js'
 import { closeSettings, useSettingsDialog, type SettingsSection } from './settingsDialogState.js'
@@ -686,6 +686,12 @@ const UpdateSetting = () => {
   return (
     <SettingCell
       label={label}
+      // 连不上 GitHub 时提示国内下载入口与提取码
+      description={
+        state !== 'checking' && state !== 'installing' && state?.status === 'unavailable'
+          ? t('updateLandingHint', { code: LANDING_PASSWORD })
+          : undefined
+      }
       status={status}
       action={
         state && state !== 'checking' && state !== 'installing' && state.status === 'unavailable' ? (

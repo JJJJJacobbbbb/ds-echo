@@ -29,9 +29,9 @@ MIRRORS = [
     },
     {
         "name": "蓝奏云",
-        "url": "",  # TODO: 上传 APK 后把分享链接填这里
+        "url": "https://wwbld.lanzouw.com/iFFVb4gg4inc",
         "primary": True,
-        "hint": "国内免客户端，速度快",
+        "hint": "国内免客户端；提取码 h373",
     },
     {
         "name": "Gitee Releases",
@@ -42,10 +42,16 @@ MIRRORS = [
 ]
 
 
+# 中文名 → 英文 slug：二维码文件名保持 ASCII，避免 URL 编码麻烦
+SLUGS = {"蓝奏云": "lanzou", "阿里云": "aliyun", "腾讯云": "tencent"}
+
+
 def qr_for(name: str, url: str) -> str:
     """生成二维码 PNG，返回相对页面路径；用 SVG 数据内联也可以，这里用 PNG 更通用"""
     QR_DIR.mkdir(parents=True, exist_ok=True)
-    slug = "".join(ch if ch.isalnum() else "-" for ch in name.lower()).strip("-")
+    slug = SLUGS.get(name) or "".join(
+        ch if ch.isascii() and ch.isalnum() else "-" for ch in name.lower()
+    ).strip("-") or "download"
     target = QR_DIR / f"{slug}.png"
     segno.make(url, error="m").save(target, scale=6, border=2, dark="#1c2128", light="#ffffff")
     return f"download-qr/{target.name}"
@@ -76,11 +82,15 @@ def main() -> None:
         entries.append(entry)
 
     html = PAGE.read_text(encoding="utf-8")
-    marker = "    /*__LINKS__*/"
-    if marker not in html:
-        raise SystemExit("download.html 里找不到链接占位符 /*__LINKS__*/")
+    start = "    /*__LINKS_START__*/"
+    end = "    /*__LINKS_END__*/"
+    if start not in html or end not in html:
+        raise SystemExit("download.html 里找不到 /*__LINKS_START__*/ 与 /*__LINKS_END__*/ 标记")
     body = to_js(entries) if entries else "    /* 还没有可用下载源：编辑 scripts/build-download-page.py 的 MIRRORS */"
-    PAGE.write_text(html.replace(marker, body), encoding="utf-8")
+    head, rest = html.split(start, 1)
+    _, tail = rest.split(end, 1)
+    html = head + start + "\n" + body + "\n" + end + tail
+    PAGE.write_text(html, encoding="utf-8")
     print(f"已写入 {len(entries)} 个下载源，二维码在 {QR_DIR.relative_to(ROOT)}")
 
 

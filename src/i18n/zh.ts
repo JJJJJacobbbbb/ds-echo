@@ -201,6 +201,7 @@ export const zh = {
   updateUnavailable: '暂时无法检查（已尝试 {tried} 个源，均不可达），可前往发布页手动查看',
   updateOpenReleases: '打开发布页',
   updateOpenLanding: '备用下载页',
+  updateLandingHint: '国内下载（蓝奏云）提取码：{code}',
   updateFailed: '检查失败：{message}',
   currentVersionLabel: '当前版本 {version}',
   donateSectionLabel: '支持一下',

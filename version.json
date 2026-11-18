@@ -1,12 +1,14 @@
 {
-  "version": "0.3.13",
-  "url": "https://github.com/JJJJJacobbbbb/ds-echo/releases/tag/v0.3.13",
-  "apk": "https://github.com/JJJJJacobbbbb/ds-echo/releases/download/v0.3.13/app-release.apk",
+  "version": "0.3.14",
+  "url": "https://github.com/JJJJJacobbbbb/ds-echo/releases/tag/v0.3.14",
+  "apk": "https://github.com/JJJJJacobbbbb/ds-echo/releases/download/v0.3.14/app-release.apk",
   "apkMirrors": [
-    "https://gh-proxy.com/https://github.com/JJJJJacobbbbb/ds-echo/releases/download/v0.3.13/app-release.apk",
-    "https://cors.isteed.cc/https://github.com/JJJJJacobbbbb/ds-echo/releases/download/v0.3.13/app-release.apk"
+    "https://gh-proxy.com/https://github.com/JJJJJacobbbbb/ds-echo/releases/download/v0.3.14/app-release.apk",
+    "https://cors.isteed.cc/https://github.com/JJJJJacobbbbb/ds-echo/releases/download/v0.3.14/app-release.apk"
   ],
-  "apkSha256": "38ace589fb9824d8f95e539b58cc262301d495505040bf86ff46b44d2d32218c",
-  "apkSize": 5289271,
-  "notes": "每个源独立超时，修复误报网络问题"
+  "apkSha256": "136df8c244731638ca38457012aab26dee1e2b0fd3334f7adcba479141c775ad",
+  "apkSize": 5289447,
+  "landing": "https://wwbld.lanzouw.com/iFFVb4gg4inc",
+  "landingCode": "h373",
+  "notes": "国内下载入口（蓝奏云）"
 }

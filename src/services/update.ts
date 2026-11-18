@@ -19,7 +19,10 @@ export const UPDATE_REPO = 'JJJJJacobbbbb/ds-echo'
  * 用途：GitHub 打不开时，用户仍能拿到 APK。留空则不显示该按钮。
  * 建议放到国内可达的静态托管（蓝奏云分享页 / Gitee Pages / 自己的 OSS）。
  */
-export const LANDING_URL = ''
+export const LANDING_URL = 'https://wwbld.lanzouw.com/iFFVb4gg4inc'
+
+/** 蓝奏云分享页需要提取码（免费账号无法关闭密码） */
+export const LANDING_PASSWORD = 'h373'
 
 /** 发布页：检查失败时给用户一个手动入口 */
 export const RELEASES_URL = `https://github.com/${UPDATE_REPO}/releases`
