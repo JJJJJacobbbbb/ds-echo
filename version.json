@@ -1,14 +1,14 @@
 {
-  "version": "0.3.19",
-  "url": "https://github.com/JJJJJacobbbbb/ds-echo/releases/tag/v0.3.19",
-  "apk": "https://github.com/JJJJJacobbbbb/ds-echo/releases/download/v0.3.19/app-release.apk",
+  "version": "0.3.20",
+  "url": "https://github.com/JJJJJacobbbbb/ds-echo/releases/tag/v0.3.20",
+  "apk": "https://github.com/JJJJJacobbbbb/ds-echo/releases/download/v0.3.20/app-release.apk",
   "apkMirrors": [
-    "https://gh-proxy.com/https://github.com/JJJJJacobbbbb/ds-echo/releases/download/v0.3.19/app-release.apk",
-    "https://cors.isteed.cc/https://github.com/JJJJJacobbbbb/ds-echo/releases/download/v0.3.19/app-release.apk"
+    "https://gh-proxy.com/https://github.com/JJJJJacobbbbb/ds-echo/releases/download/v0.3.20/app-release.apk",
+    "https://cors.isteed.cc/https://github.com/JJJJJacobbbbb/ds-echo/releases/download/v0.3.20/app-release.apk"
   ],
-  "apkSha256": "7e9f0b438a1ca4f8f2f5705d3cb8b84514dbe5e4df63c8d64772d00aa3802159",
-  "apkSize": 5289719,
+  "apkSha256": "6f3d7409dfb75fb4f6941c479dfb11032fc5e11dd8935d9c26e4c6936187367c",
+  "apkSize": 5290123,
   "landing": "https://wwbld.lanzouw.com/iFFVb4gg4inc",
   "landingCode": "h373",
-  "notes": "打赏名单只显示名称与金额，并显示更新时间"
+  "notes": "外链改用系统默认浏览器，删掉 Chrome 也能打开"
 }
