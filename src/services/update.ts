@@ -200,34 +200,43 @@ const readApi = async (signal: AbortSignal): Promise<ReleaseInfo | null> => {
   }
 }
 
+/**
+ * 单个源的超时。之前整次检查共用一个 10 秒 AbortController：
+ * 只要第一个源（api.github.com）卡住，后面所有镜像都会拿到 aborted 信号，
+ * 结果必然是"网络问题"——即使镜像其实是通的。所以每个源各算各的。
+ */
+const SOURCE_TIMEOUT_MS = 6_000
+
+const withTimeout = async <T>(
+  run: (signal: AbortSignal) => Promise<T | null>
+): Promise<T | null> => {
+  const controller = new AbortController()
+  const timer = setTimeout(() => controller.abort(), SOURCE_TIMEOUT_MS)
+  try {
+    return await run(controller.signal)
+  } catch {
+    return null
+  } finally {
+    clearTimeout(timer)
+  }
+}
+
 export const checkForUpdate = async (): Promise<UpdateResult> => {
   if (!UPDATE_REPO) {
     return { status: 'unconfigured' }
   }
-  const controller = new AbortController()
-  const timer = setTimeout(() => controller.abort(), 10_000)
-  try {
-    const current = currentVersion()
-    const api = await readApi(controller.signal).catch(() => null)
-    if (api) {
-      return decide(api, current)
-    }
-    const manifest = await readManifest(controller.signal).catch(() => null)
-    if (manifest) {
-      return decide(manifest, current)
-    }
-    return {
-      status: 'unavailable',
-      message: 'network',
-      tried: manifestUrls().length + 1,
-    }
-  } catch (error) {
-    return {
-      status: 'unavailable',
-      message: error instanceof Error ? error.message : String(error),
-      tried: manifestUrls().length + 1,
-    }
-  } finally {
-    clearTimeout(timer)
+  const current = currentVersion()
+  const api = await withTimeout((signal) => readApi(signal))
+  if (api) {
+    return decide(api, current)
+  }
+  const manifest = await withTimeout((signal) => readManifest(signal))
+  if (manifest) {
+    return decide(manifest, current)
+  }
+  return {
+    status: 'unavailable',
+    message: 'network',
+    tried: manifestUrls().length + 1,
   }
 }
