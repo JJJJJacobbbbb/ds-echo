@@ -1,11 +1,11 @@
 {
-  "version": "0.3.9",
-  "url": "https://github.com/JJJJJacobbbbb/ds-echo/releases/tag/v0.3.9",
-  "apk": "https://github.com/JJJJJacobbbbb/ds-echo/releases/download/v0.3.9/app-release.apk",
+  "version": "0.3.11",
+  "url": "https://github.com/JJJJJacobbbbb/ds-echo/releases/tag/v0.3.11",
+  "apk": "https://github.com/JJJJJacobbbbb/ds-echo/releases/download/v0.3.11/app-release.apk",
   "apkMirrors": [
-    "https://gh-proxy.com/https://github.com/JJJJJacobbbbb/ds-echo/releases/download/v0.3.9/app-release.apk"
+    "https://gh-proxy.com/https://github.com/JJJJJacobbbbb/ds-echo/releases/download/v0.3.11/app-release.apk"
   ],
-  "apkSha256": "cab2ebab8173eaf5c472210582339be853d50ab5cb67e79f8c83d5e2e1387292",
-  "apkSize": 5289139,
-  "notes": "验证应用内更新"
+  "apkSha256": "3995ade7d46d3277c5a773ac493f44b990c4c51c569c6440aa5b32a0cc8ea189",
+  "apkSize": 5289135,
+  "notes": "侧边栏铺满全高；设置弹窗高度上限修复"
 }

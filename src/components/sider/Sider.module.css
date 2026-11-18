@@ -194,11 +194,17 @@
 
 .drawer {
   position: absolute;
-  /* 抽屉是绝对定位，会绕开 .frame 的内边距，必须自己避开状态栏/导航栏 */
-  top: var(--dsecho-safe-top);
-  bottom: var(--dsecho-safe-bottom);
+  /*
+   * 抽屉铺满整个可视高度（含状态栏/导航栏区域），安全区改由内部 padding 承担。
+   * 之前写 top: safe-top 会让顶部留一条灰色遮罩带，看起来像没画满（真机反馈）。
+   */
+  top: 0;
+  bottom: 0;
   left: 0;
   z-index: 800;
+  padding-top: var(--dsecho-safe-top, 0px);
+  padding-bottom: var(--dsecho-safe-bottom, 0px);
+  background-color: var(--dsw-alias-bg-layer-2);
 }
 
 .drawerMask {

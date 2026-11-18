@@ -7,7 +7,12 @@
    * 这个弹窗是底部面板样式（圆角 24px 24px 0 0），面板本身要贴到屏幕底部，
    * 否则下方会露出遮罩形成一条灰边。留白放在内边距里，内容就不会被手势条压住。
    */
-  max-height: calc(100dvh - var(--dsecho-safe-top) - 16px);
+  /*
+   * 用 100% 而不是 100dvh：真机 WebView 的 dvh 比可视高度大（含系统栏），
+   * 减法算出来的上限夹不住，弹窗底部（打赏那一行）会被切到屏幕外。
+   * 100% 相对遮罩内容区，才可靠。
+   */
+  max-height: 100%;
   padding: 19px 24px calc(22px + var(--dsecho-safe-bottom));
 }
 
