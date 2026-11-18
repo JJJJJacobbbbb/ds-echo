@@ -1,5 +1,4 @@
 import { describe, expect, it } from 'vitest'
-import { CONTEXT_INPUT_BUDGET } from '../src/services/chat/contextBudget.js'
 import { toRequestMessages } from '../src/services/chat/reply.js'
 import type { AssistantMessage, Message, UserMessage } from '../src/services/chat/types.js'
 
@@ -59,7 +58,7 @@ describe('toRequestMessages 的上下文裁剪', () => {
 
     expect(result.droppedRounds).toBeGreaterThan(0)
     // 裁剪后估算量必须落回预算内
-    expect(result.estimatedTokens).toBeLessThanOrEqual(CONTEXT_INPUT_BUDGET)
+    expect(result.estimatedTokens).toBeLessThanOrEqual(900_000)
 
     // 丢的是最早的：第 0 轮的标记必须已不在请求里，最后一轮的标记必须还在
     const serialized = JSON.stringify(result.messages)

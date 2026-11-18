@@ -14,15 +14,9 @@ import {
   getDraft,
   prepareDraftMessage,
 } from './drafts.js'
-import { estimateTokens } from './contextBudget.js'
 import { createLatestReminder } from './latestReminder.js'
-import {
-  buildSystemPrompt,
-  planMemoryUpdate,
-  renderRounds,
-  sliceRounds,
-  summarizeMemory,
-} from './memory.js'
+import { noteTurn } from '../memory/index.js'
+import { withMemory } from '../memory/prompt.js'
 import {
   applyEvent,
   canContinueReply,
@@ -1039,31 +1033,23 @@ const streamReply = async (sessionId: string, initial: AssistantMessage, request
           latestReminder
         )
         const { messages } = requestMessages
-        // 被丢弃的轮次不"消失"在用户视野外：把它们压成长期记忆，随后的请求会带上。
-        // 记忆更新是尽力而为的异步任务，失败也不影响本次发送。
+        // 上下文被裁剪时把事实记在回复上，界面如实展示"看不到前面多少轮"
         if (requestMessages.droppedRounds > 0) {
-          const current = getSession(sessionId)
-          const rounds = current ? getContextRounds(current.messages) : []
-          const plan = planMemoryUpdate(
-            requestMessages.droppedRounds,
-            current?.memoryCoveredRounds ?? 0,
-            (from, to) =>
-              estimateTokens(rounds.slice(from, to).map(([user, reply]) => user.content + getReplyText(reply)).join(''))
-          )
-          if (plan) {
-            void updateMemoryFromRounds(
-              sessionId,
-              plan.from,
-              plan.to,
-              initial.model ?? MODEL
-            )
+          reply = {
+            ...reply,
+            contextTrim: {
+              droppedRounds: requestMessages.droppedRounds,
+              estimatedTokens: requestMessages.estimatedTokens,
+            },
           }
+          updateReply(sessionId, reply)
+          persist(sessionId)
         }
         const events = streamMessage(
           useSettings.getState().apiKey ?? '',
           {
             model: initial.model ?? MODEL,
-            system: buildSystemPrompt(SYSTEM_PROMPT, getSession(sessionId)?.memory ?? null),
+            system: withMemory(SYSTEM_PROMPT, sessionId),
             messages,
             thinking: { type: initial.thinking ? 'enabled' : 'disabled' },
             safety_check: SAFETY_CHECK,
@@ -1095,6 +1081,13 @@ const streamReply = async (sessionId: string, initial: AssistantMessage, request
           }
         }
         reply = settleReply(reply, 'done', Date.now())
+        // 每 N 轮自动学习记忆；后台执行，失败不影响本轮
+        void noteTurn({
+          scope: sessionId,
+          apiKey: useSettings.getState().apiKey ?? '',
+          model: initial.model ?? MODEL,
+          messages: contextMessages(prepared.history, prepared.question, reply),
+        })
         break
       } catch (error) {
         if (controller.signal.aborted) {
@@ -1157,71 +1150,31 @@ const streamReply = async (sessionId: string, initial: AssistantMessage, request
 }
 
 
-// ---------- 会话记忆 ----------
-
-/** 正在更新记忆的会话；同一会话同时只跑一个摘要请求 */
-const memoryUpdating = new Set<string>()
-
-/** 手动保存/清空记忆（界面用） */
-export const saveSessionMemory = (id: string, memory: string | null) => {
-  const text = memory?.trim() ?? ''
-  updateSession(id, (session) => ({
-    ...session,
-    memory: text || undefined,
-    memoryUpdatedAt: Date.now(),
-    // 用户手动改写过记忆后，不清空 coveredRounds：之前的轮次仍然算"已被记忆吸收"
-    updatedAt: session.updatedAt,
-  }))
-  persist(id)
-}
-
 /**
- * 把 [from, to) 轮次压进记忆。
- * 失败只记日志：记忆是增强项，不能因为摘要请求失败就让用户发不出消息。
+ * 把本轮上下文渲染成记忆学习用的消息列表（role + 纯文本）。
+ * 只取正文：思考过程与工具结果对"长期记忆"没有价值，还会污染提取。
  */
-const updateMemoryFromRounds = async (
-  sessionId: string,
-  from: number,
-  to: number,
-  model: ChatModel
-): Promise<void> => {
-  if (memoryUpdating.has(sessionId)) {
-    return
-  }
-  const apiKey = useSettings.getState().apiKey ?? ''
-  const session = getSession(sessionId)
-  if (!apiKey || !session) {
-    return
-  }
-  memoryUpdating.add(sessionId)
-  try {
-    const rounds = sliceRounds(session.messages, from, to)
-    if (rounds.length === 0) {
-      return
+const contextMessages = (
+  history: Message[],
+  question: UserMessage,
+  answer: AssistantMessage
+): { role: string; text: string }[] => {
+  const list: { role: string; text: string }[] = []
+  for (const [user, reply] of getContextRounds(history)) {
+    if (user.content.trim()) {
+      list.push({ role: 'user', text: user.content })
     }
-    const controller = new AbortController()
-    const text = await summarizeMemory({
-      apiKey,
-      model,
-      previous: session.memory ?? null,
-      excerpt: renderRounds(rounds),
-      signal: controller.signal,
-    })
-    if (!text) {
-      return
+    const text = getReplyText(reply)
+    if (text.trim()) {
+      list.push({ role: 'assistant', text })
     }
-    updateSession(sessionId, (current) => ({
-      ...current,
-      memory: text,
-      memoryCoveredRounds: to,
-      memoryUpdatedAt: Date.now(),
-      updatedAt: current.updatedAt,
-    }))
-    persist(sessionId)
-  } catch (error) {
-    // oxlint-disable-next-line no-console -- 记忆更新是后台任务，失败只能记录
-    console.error('[memory] 记忆更新失败，本次按无记忆继续', error)
-  } finally {
-    memoryUpdating.delete(sessionId)
   }
+  if (question.content.trim()) {
+    list.push({ role: 'user', text: question.content })
+  }
+  const finalText = getReplyText(answer)
+  if (finalText.trim()) {
+    list.push({ role: 'assistant', text: finalText })
+  }
+  return list
 }

@@ -68,25 +68,3 @@
     padding-bottom: env(safe-area-inset-bottom);
   }
 }
-
-/* 会话头部的「记忆」入口：有记忆时高亮，提示它是活的 */
-.memoryButton {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  margin-inline-start: auto;
-  padding: 5px 10px;
-  border: 1px solid var(--dsw-alias-border-l2);
-  border-radius: 999px;
-  background: transparent;
-  color: var(--dsw-alias-label-secondary);
-  font: inherit;
-  font-size: 12px;
-  line-height: 16px;
-  cursor: pointer;
-}
-
-.memoryButtonActive {
-  border-color: var(--dsw-alias-brand-primary);
-  color: var(--dsw-alias-brand-primary);
-}
