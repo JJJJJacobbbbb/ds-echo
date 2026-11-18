@@ -9,7 +9,7 @@
  */
 
 /** 仓库地址：开源后填成 owner/repo，例如 `someone/ds-echo` */
-export const UPDATE_REPO = ''
+export const UPDATE_REPO = 'JJJJJacobbbbb/ds-echo'
 
 /** 当前版本（构建时从 package.json 注入为 __APP_VERSION__） */
 export const currentVersion = (): string =>
