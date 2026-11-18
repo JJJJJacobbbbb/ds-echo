@@ -21,3 +21,8 @@ declare module '*.png' {
 
 /** 构建时由 rspack/vitest 从 package.json 注入 */
 declare const __APP_VERSION__: string
+
+declare module '*/donations.json' {
+  const value: unknown
+  export default value
+}

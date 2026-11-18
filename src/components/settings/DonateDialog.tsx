@@ -1,38 +1,22 @@
-import { useState } from 'react'
 import { useTranslate } from '../../i18n/index.js'
 import { Button } from '../base/Button.js'
 import { Modal } from '../base/Modal.js'
-import wechatQr from '../../assets/donate/wechat.png'
-import alipayQr from '../../assets/donate/alipay.png'
+import { listDonations } from '../../services/donations.js'
+import qr from '../../assets/donate/qrcode.png'
 import styles from './DonateDialog.module.css'
 
 /**
- * 打赏弹窗：金额快捷项 + 收款码。
+ * 打赏弹窗：只放收款码 + 捐赠名单。
  *
- * 为什么不是"点一下直接付"：个人微信/支付宝没有收款 API，能自动扣款的只有
- * 有企业/个体工商户资质的商户号。个人开发者只能让用户扫码，App 负责把
- * 「多少钱」提示清楚——所以点金额只是选中并提示，真正的支付在用户自己的扫码里完成。
+ * 为什么没有金额按钮：金额是用户扫码后在**收款方页面**上选的（微信/支付宝的赞赏页），
+ * App 里放一排在本地点了也不会跳转，属于假按钮，所以不做。
  *
- * 收款码图片在 `src/assets/donate/`，替换同名文件即可（不要把二维码写死在代码里）。
+ * 名单数据在 `src/data/donations.json`，由作者手填——本 App 没有后端，
+ * 不可能自动知道谁打赏了。不填就是空列表。
  */
-
-const AMOUNTS = [
-  { value: '1.88', label: 'donateAmountCheap' },
-  { value: '3.88', label: 'donateAmountSmall' },
-  { value: '6.66', label: 'donateAmountCoffee' },
-  { value: '8.88', label: 'donateAmountHappy' },
-  { value: '12.90', label: 'donateAmountBig' },
-  { value: '66.66', label: 'donateAmountHuge' },
-] as const
-
-type Channel = 'wechat' | 'alipay'
-
 export const DonateDialog = ({ onClose }: { onClose: () => void }) => {
   const t = useTranslate()
-  const [channel, setChannel] = useState<Channel>('wechat')
-  const [amount, setAmount] = useState<string | null>(null)
-
-  const qr = channel === 'wechat' ? wechatQr : alipayQr
+  const donations = listDonations()
 
   return (
     <Modal
@@ -48,48 +32,27 @@ export const DonateDialog = ({ onClose }: { onClose: () => void }) => {
     >
       <p className={styles.hint}>{t('donateHint')}</p>
 
-      <div className={styles.channels} role="tablist" aria-label={t('donateChannelLabel')}>
-        <button
-          type="button"
-          role="tab"
-          aria-selected={channel === 'wechat'}
-          className={channel === 'wechat' ? styles.channelActive : styles.channel}
-          onClick={() => setChannel('wechat')}
-        >
-          {t('donateWechat')}
-        </button>
-        <button
-          type="button"
-          role="tab"
-          aria-selected={channel === 'alipay'}
-          className={channel === 'alipay' ? styles.channelActive : styles.channel}
-          onClick={() => setChannel('alipay')}
-        >
-          {t('donateAlipay')}
-        </button>
-      </div>
-
-      <div className={styles.amounts}>
-        {AMOUNTS.map((item) => (
-          <button
-            key={item.value}
-            type="button"
-            className={amount === item.value ? styles.amountActive : styles.amount}
-            aria-pressed={amount === item.value}
-            onClick={() => setAmount(item.value)}
-          >
-            <span className={styles.amountLabel}>{t(item.label)}</span>
-            <span className={styles.amountValue}>¥{item.value}</span>
-          </button>
-        ))}
-      </div>
-
       <div className={styles.qrWrap}>
-        {/* 图片替换方式见 src/assets/donate/README.md */}
-        <img className={styles.qr} src={qr} alt={channel === 'wechat' ? t('donateWechat') : t('donateAlipay')} />
-        <div className={styles.qrTip}>
-          {amount ? t('donatePayHint', { amount }) : t('donateScanHint')}
-        </div>
+        <img className={styles.qr} src={qr} alt={t('donateQrAlt')} />
+        <div className={styles.qrTip}>{t('donateScanHint')}</div>
+      </div>
+
+      <div className={styles.listSection}>
+        <div className={styles.listTitle}>{t('donateListTitle')}</div>
+        {donations.length === 0 ? (
+          <div className={styles.listEmpty}>{t('donateListEmpty')}</div>
+        ) : (
+          <ul className={styles.list}>
+            {donations.map((item) => (
+              <li key={`${item.name}-${item.amount}-${item.date ?? ''}`} className={styles.item}>
+                <span className={styles.itemName}>{item.name || t('donateAnonymous')}</span>
+                {item.message ? <span className={styles.itemMessage}>{item.message}</span> : null}
+                <span className={styles.itemAmount}>¥{item.amount.toFixed(2)}</span>
+              </li>
+            ))}
+          </ul>
+        )}
+        <div className={styles.listNote}>{t('donateListNote')}</div>
       </div>
 
       <p className={styles.footnote}>{t('donateFootnote')}</p>
