@@ -1,11 +1,11 @@
 {
-  "version": "0.3.7",
-  "url": "https://github.com/JJJJJacobbbbb/ds-echo/releases/tag/v0.3.7",
-  "apk": "https://github.com/JJJJJacobbbbb/ds-echo/releases/download/v0.3.7/app-release.apk",
+  "version": "0.3.9",
+  "url": "https://github.com/JJJJJacobbbbb/ds-echo/releases/tag/v0.3.9",
+  "apk": "https://github.com/JJJJJacobbbbb/ds-echo/releases/download/v0.3.9/app-release.apk",
   "apkMirrors": [
-    "https://gh-proxy.com/https://github.com/JJJJJacobbbbb/ds-echo/releases/download/v0.3.7/app-release.apk"
+    "https://gh-proxy.com/https://github.com/JJJJJacobbbbb/ds-echo/releases/download/v0.3.9/app-release.apk"
   ],
-  "apkSha256": "60ccfcc4d3e2ee869bd450491d8bfd34c68c14a3196196ce044cde2a1278a3c6",
-  "apkSize": 5287923,
-  "notes": "应用内下载 APK，镜像加速"
+  "apkSha256": "cab2ebab8173eaf5c472210582339be853d50ab5cb67e79f8c83d5e2e1387292",
+  "apkSize": 5289139,
+  "notes": "验证应用内更新"
 }
