@@ -1,10 +1,11 @@
 /**
  * 检查更新。
  *
- * 数据源为什么不是 GitHub API：`api.github.com` 对未认证请求限流 60 次/小时/IP，
- * 而移动网络大量用户共享同一出口 IP，实际会频繁拿到 403（实测本机已撞到）。
- * 所以主路径改为读仓库里的 `version.json`（raw.githubusercontent.com，CDN 缓存、无限流），
- * GitHub API 只作兜底。
+ * 两个数据源各有毛病，所以都要：
+ * - `api.github.com`：实时，但对未认证请求限流 60 次/小时/IP（实测本机已撞到 403，
+ *   移动网络用户共享出口 IP 更容易撞）→ 优先用它，保证刚发版时结果正确
+ * - 仓库里的 `version.json`（raw.githubusercontent.com）：无限流，但 **CDN 有缓存延迟**
+ *   （实测发版后数分钟仍返回旧内容）→ 只作兜底
  *
  * 隐私：检查更新会请求 github.com / raw.githubusercontent.com，对方能看到你的 IP。
  * 默认**不自动检查**，只在用户点「检查更新」时发一次请求。
@@ -118,13 +119,13 @@ export const checkForUpdate = async (): Promise<UpdateResult> => {
   const timer = setTimeout(() => controller.abort(), 10_000)
   try {
     const current = currentVersion()
-    const manifest = await readManifest(controller.signal).catch(() => null)
-    if (manifest) {
-      return decide(manifest, current)
-    }
     const api = await readApi(controller.signal).catch(() => null)
     if (api) {
       return decide(api, current)
+    }
+    const manifest = await readManifest(controller.signal).catch(() => null)
+    if (manifest) {
+      return decide(manifest, current)
     }
     return { status: 'unavailable', message: 'network' }
   } catch (error) {

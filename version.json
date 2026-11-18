@@ -1,5 +1,5 @@
 {
-  "version": "0.3.1",
-  "url": "https://github.com/JJJJJacobbbbb/ds-echo/releases/tag/v0.3.1",
-  "notes": "修复检查更新与版本比较"
+  "version": "0.3.2",
+  "url": "https://github.com/JJJJJacobbbbb/ds-echo/releases/tag/v0.3.2",
+  "notes": "检查更新：API 优先、version.json 兜底"
 }
