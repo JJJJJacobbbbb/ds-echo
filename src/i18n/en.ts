@@ -205,6 +205,8 @@ export const en = {
   updateAvailable: 'New version {version} available',
   updateDownload: 'Download',
   updateUnconfigured: 'Repository not configured (set UPDATE_REPO)',
+  updateUnavailable: 'Cannot check right now (network or GitHub rate limit) — open releases manually',
+  updateOpenReleases: 'Open releases',
   updateFailed: 'Check failed: {message}',
   currentVersionLabel: 'Version {version}',
   donateSectionLabel: 'Support',

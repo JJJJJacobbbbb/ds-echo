@@ -39,7 +39,7 @@ import { saveFileForUser } from '../../services/fileSave.js'
 import { ApiKeyConfirm, ApiKeyField, useApiKeyEditor } from './ApiKeyField.js'
 import { AccountPanel } from './AccountPanel.js'
 import { DonateDialog } from './DonateDialog.js'
-import { checkForUpdate, currentVersion, type UpdateResult } from '../../services/update.js'
+import { RELEASES_URL, checkForUpdate, currentVersion, type UpdateResult } from '../../services/update.js'
 import { openTrustedUrl } from '../../services/external.js'
 import { closeSettings, useSettingsDialog, type SettingsSection } from './settingsDialogState.js'
 import styles from './Settings.module.css'
@@ -664,8 +664,8 @@ const UpdateSetting = () => {
     if (state.status === 'unconfigured') {
       return { key: 'updateUnconfigured' }
     }
-    if (state.status === 'error') {
-      return { key: 'updateFailed', params: { message: state.message }, error: true }
+    if (state.status === 'unavailable') {
+      return { key: 'updateUnavailable' }
     }
     if (state.status === 'latest') {
       return { key: 'updateLatest', params: { version: state.version } }
@@ -678,7 +678,16 @@ const UpdateSetting = () => {
       label={label}
       status={status}
       action={
-        state && state !== 'checking' && state.status === 'outdated' ? (
+        state && state !== 'checking' && state.status === 'unavailable' ? (
+          <Button
+            variant="outlined"
+            size="m"
+            className={styles.cellButton}
+            onClick={() => void openTrustedUrl(RELEASES_URL)}
+          >
+            {t('updateOpenReleases')}
+          </Button>
+        ) : state && state !== 'checking' && state.status === 'outdated' ? (
           <Button
             variant="primary"
             size="m"

@@ -195,6 +195,8 @@ export const zh = {
   updateAvailable: '发现新版本 {version}',
   updateDownload: '前往下载',
   updateUnconfigured: '未配置仓库地址（开源后填写 UPDATE_REPO）',
+  updateUnavailable: '暂时无法检查（网络或 GitHub 限流），可前往发布页手动查看',
+  updateOpenReleases: '打开发布页',
   updateFailed: '检查失败：{message}',
   currentVersionLabel: '当前版本 {version}',
   donateSectionLabel: '支持一下',
