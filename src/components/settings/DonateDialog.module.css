@@ -1,3 +1,23 @@
+.dialog {
+  width: min(420px, calc(100vw - 32px));
+  /*
+   * 必须限高：收款码海报是竖版，加上名单很容易超过屏幕，
+   * 一旦超过，标题和关闭按钮会被顶出屏幕、底部按钮也点不到（真机踩过：弹窗从 19 CSS 一直到 800 CSS）。
+   *
+   * 用 100% 而不是 100dvh：真机 WebView 的 dvh 比可视高度大（把系统栏算进去了），
+   * `calc(100dvh - safe - 32px)` 反而夹不住。100% 相对遮罩内容区（已扣 safe-top）才可靠。
+   */
+  max-height: 100%;
+  margin-block: 6px calc(var(--dsecho-safe-bottom, 0px) + 10px);
+}
+
+/* 内容区滚动，头部与底部按钮保持可见 */
+.body {
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
 .qrWrap {
   display: flex;
   flex-direction: column;

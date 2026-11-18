@@ -15,6 +15,8 @@
    * 移动端抽屉 .drawer 都是 fixed/absolute 定位，各自绕开彼此的 padding，
    * 必须逐个补，不能只在一个地方留白。
    */
+  /* 兜底值：原生侧（MainActivity）会用内联样式覆盖成系统栏真实高度，
+     因为真机上 env() 会少报（实测 19px vs 实际 36px） */
   --dsecho-safe-top: env(safe-area-inset-top, 0px);
   --dsecho-safe-bottom: env(safe-area-inset-bottom, 0px);
 }

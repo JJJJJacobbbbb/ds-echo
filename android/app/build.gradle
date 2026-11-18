@@ -25,8 +25,8 @@ android {
         targetSdkVersion rootProject.ext.targetSdkVersion
         // 与 package.json 的 version 保持一致；每次对外发包都要同时加 versionCode，
         // 否则覆盖安装会失败（Android 要求新包的 versionCode 更大）
-        versionCode 11
-        versionName "0.3.3"
+        versionCode 13
+        versionName "0.3.5"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.

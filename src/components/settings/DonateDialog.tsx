@@ -35,7 +35,6 @@ export const DonateDialog = ({ onClose }: { onClose: () => void }) => {
 
       <div className={styles.qrWrap}>
         <img className={styles.qr} src={qr} alt={t('donateQrAlt')} />
-        <div className={styles.qrTip}>{t('donateScanHint')}</div>
       </div>
 
       <div className={styles.listSection}>
@@ -53,7 +52,6 @@ export const DonateDialog = ({ onClose }: { onClose: () => void }) => {
             ))}
           </ul>
         )}
-        <div className={styles.listNote}>{t('donateListNote')}</div>
       </div>
 
       <p className={styles.footnote}>{t('donateFootnote')}</p>

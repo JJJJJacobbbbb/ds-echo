@@ -1,5 +1,5 @@
 {
-  "version": "0.3.3",
-  "url": "https://github.com/JJJJJacobbbbb/ds-echo/releases/tag/v0.3.3",
-  "notes": "修复打赏弹窗超出屏幕"
+  "version": "0.3.5",
+  "url": "https://github.com/JJJJJacobbbbb/ds-echo/releases/tag/v0.3.5",
+  "notes": "安全区改由原生注入，修复弹窗压状态栏"
 }

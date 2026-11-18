@@ -1,32 +1,71 @@
 package com.dsecho.app;
 
 import android.os.Bundle;
+import android.webkit.WebView;
 
+import androidx.core.graphics.Insets;
+import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowCompat;
+import androidx.core.view.WindowInsetsCompat;
 
 import com.getcapacitor.BridgeActivity;
 
+import java.util.Locale;
+
 /**
- * DS Echo 的宿主 Activity。
+ * 主 Activity：edge-to-edge + 把系统栏高度注入 WebView。
  *
- * 这里只做一件事：让 WebView 铺满整块屏幕（edge-to-edge）。
+ * 为什么要在原生侧注入，而不是只用 CSS 的 env(safe-area-inset-*)：
+ * 真机上（vivo V2309A / Android 16 / WebView 157）env(safe-area-inset-top) 实测只报 19px，
+ * 而状态栏实际是 36px —— 弹窗会压到状态栏、底部被手势条盖住。
+ * 系统栏的真实 inset 只有原生拿得到，所以这里读 WindowInsets 再写成 CSS 变量：
  *
- * 为什么必须这么做：
- * 默认模式（decorFitsSystemWindows = true）下，状态栏与导航栏所占区域由 Activity 的
- * 窗口底色填充。本机实测状态栏 126px + 导航栏 63px，窗口底色是 AppCompat DayNight 主题
- * 的 #303030，而 App 自己背景是 #151517，于是长屏手机上下各出现一条灰边。
+ *   --dsecho-safe-top    状态栏高度（px）
+ *   --dsecho-safe-bottom 导航栏/手势条高度（px）
  *
- * 铺满之后，整块屏幕由网页背景绘制，色块断层消失；同时 Android WebView 会通过
- * CSS 的 env(safe-area-inset-top / -bottom) 上报系统栏高度（本机实测 36px / 18px，
- * 即 126/3.5 与 63/3.5），由 global.css 给 #root 留出对应内边距。
- *
- * 不要改成在原生里给状态栏设置颜色：那只是把灰边换成别的颜色，
- * 用户在 App 内单独切换深浅色时仍会不一致。
+ * CSS 侧仍是 env() 作为兜底（iOS/浏览器），两者同时存在时以本类注入的内联样式为准。
  */
 public class MainActivity extends BridgeActivity {
+
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        // 让页面铺到状态栏/导航栏下方，inset 由本类负责转成 CSS 变量
         WindowCompat.setDecorFitsSystemWindows(getWindow(), false);
+        applyInsetsToWebView();
+    }
+
+    @Override
+    public void onResume() {
+        super.onResume();
+        // 页面重载会丢掉内联样式；回到前台时重新请求一次 inset，触发下面的监听器
+        WebView webView = webView();
+        if (webView != null) {
+            webView.requestApplyInsets();
+        }
+    }
+
+    private WebView webView() {
+        return getBridge() != null ? getBridge().getWebView() : null;
+    }
+
+    private void applyInsetsToWebView() {
+        WebView webView = webView();
+        if (webView == null) {
+            return;
+        }
+        final float density = getResources().getDisplayMetrics().density;
+        ViewCompat.setOnApplyWindowInsetsListener(webView, (view, windowInsets) -> {
+            Insets bars = windowInsets.getInsets(WindowInsetsCompat.Type.systemBars());
+            // 除以 density 换算成 CSS px，与前端使用的单位一致
+            String top = String.format(Locale.US, "%.1f", bars.top / density);
+            String bottom = String.format(Locale.US, "%.1f", bars.bottom / density);
+            String script = "(function(){var r=document.documentElement;"
+                    + "r.style.setProperty('--dsecho-safe-top','" + top + "px');"
+                    + "r.style.setProperty('--dsecho-safe-bottom','" + bottom + "px');})()";
+            webView.evaluateJavascript(script, null);
+            return windowInsets;
+        });
+        webView.requestApplyInsets();
     }
 }
