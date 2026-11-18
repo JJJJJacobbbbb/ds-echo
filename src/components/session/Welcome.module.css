@@ -66,3 +66,42 @@
     user-select: none;
   }
 }
+
+
+/* 刚连上 Key、还没有任何会话时的导入引导 */
+.importGuide {
+  box-sizing: border-box; /* 不加的话 width:100% 会再加 32px 内边距，右侧溢出被裁 */
+  width: 100%;
+  max-width: 420px;
+  margin: 18px auto 0;
+  padding: 14px 16px;
+  border: 1px solid var(--dsw-alias-border-l2);
+  border-radius: 14px;
+  background: var(--dsw-alias-interactive-bg-hover);
+  text-align: start;
+}
+
+.importTitle {
+  margin: 0 0 6px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--dsw-alias-label-primary);
+}
+
+.importBody {
+  margin: 0 0 10px;
+  font-size: 13px;
+  line-height: 20px;
+  color: var(--dsw-alias-label-secondary);
+}
+
+.importAction {
+  padding: 7px 14px;
+  border: 1px solid var(--dsw-alias-brand-primary);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--dsw-alias-brand-primary);
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}

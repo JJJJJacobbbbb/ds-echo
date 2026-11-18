@@ -1,6 +1,9 @@
 import type { zh } from './zh.js'
 
 export const en = {
+  importGuideTitle: 'Bring your chat history over',
+  importGuideBody: 'Open the DeepSeek app → Settings → Data management → Export chats to get a ZIP file, then import it here.',
+  importGuideAction: 'Choose file to import',
   welcomeMessageChat250808: 'How can I help you?',
   contentCaveat: 'AI-generated, for reference only',
   expandSiderbarButton: 'Open sidebar',
@@ -124,7 +127,6 @@ export const en = {
   setupStep3Body: 'After connecting, the balance is checked once to confirm the key works.',
   setupConnect: 'Verify and connect',
   setupConnecting: 'Verifying...',
-  setupImportFirst: 'Already have chat history? Import it first',
   setupDone: 'Connected. Start chatting',
   balanceTitle: 'Balance',
   balanceLoading: 'Checking balance...',

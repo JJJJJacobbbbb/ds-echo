@@ -12,7 +12,6 @@ import { useTranslate } from '../../i18n/index.js'
 import { openOfficialPage } from '../../services/external.js'
 import { useBalance } from '../../services/account/balance.js'
 import { useApiKeyForm } from '../settings/useApiKeyForm.js'
-import { openSettings } from '../settings/settingsDialogState.js'
 import styles from './SetupGuide.module.css'
 
 export const SetupGuide = () => {
@@ -94,16 +93,6 @@ export const SetupGuide = () => {
             </p>
           ) : null}
         </section>
-
-        <div className={styles.footer}>
-          <button
-            type="button"
-            className={styles.link}
-            onClick={() => openSettings('data')}
-          >
-            {t('setupImportFirst')}
-          </button>
-        </div>
       </div>
     </div>
   )

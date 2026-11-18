@@ -1,5 +1,8 @@
 export const zh = {
   welcomeMessageChat250808: '今天有什么可以帮到你？',
+  importGuideTitle: '把官方 App 里的聊天记录带过来',
+  importGuideBody: '打开 DeepSeek App → 设置 → 数据管理 → 导出对话，得到一个 ZIP 文件；回到这里选择它导入。',
+  importGuideAction: '选择文件导入',
   contentCaveat: '内容由 AI 生成，请仔细甄别',
   expandSiderbarButton: '打开边栏',
   collapseSiderbarButton: '收起边栏',
@@ -116,7 +119,6 @@ export const zh = {
   setupStep3Body: '连接后会查一次余额，确认密钥可用。',
   setupConnect: '验证并连接',
   setupConnecting: '正在验证…',
-  setupImportFirst: '已有聊天记录？先导入再连接',
   setupDone: '已连接，开始聊天',
   balanceTitle: '账户余额',
   balanceLoading: '正在查询余额…',
