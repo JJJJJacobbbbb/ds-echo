@@ -25,12 +25,15 @@
   gap: 8px;
 }
 
-/* 收款海报是竖版（约 3:4），按宽度等比缩放，别把名单挤没了 */
+/*
+ * 收款海报铺满弹窗宽度：抵消 .content 的 24px 左右内边距，
+ * 否则图片两侧各留一条白边（用户反馈）。竖版海报很高，交给内容区滚动。
+ */
 .qr {
-  width: min(100%, 210px);
+  width: calc(100% + 48px);
+  margin-inline: -24px;
   height: auto;
-  max-height: 30vh;
-  border-radius: 12px;
+  border-radius: 0;
   background: #fff;
   object-fit: contain;
 }

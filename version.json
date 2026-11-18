@@ -1,14 +1,14 @@
 {
-  "version": "0.3.14",
-  "url": "https://github.com/JJJJJacobbbbb/ds-echo/releases/tag/v0.3.14",
-  "apk": "https://github.com/JJJJJacobbbbb/ds-echo/releases/download/v0.3.14/app-release.apk",
+  "version": "0.3.15",
+  "url": "https://github.com/JJJJJacobbbbb/ds-echo/releases/tag/v0.3.15",
+  "apk": "https://github.com/JJJJJacobbbbb/ds-echo/releases/download/v0.3.15/app-release.apk",
   "apkMirrors": [
-    "https://gh-proxy.com/https://github.com/JJJJJacobbbbb/ds-echo/releases/download/v0.3.14/app-release.apk",
-    "https://cors.isteed.cc/https://github.com/JJJJJacobbbbb/ds-echo/releases/download/v0.3.14/app-release.apk"
+    "https://gh-proxy.com/https://github.com/JJJJJacobbbbb/ds-echo/releases/download/v0.3.15/app-release.apk",
+    "https://cors.isteed.cc/https://github.com/JJJJJacobbbbb/ds-echo/releases/download/v0.3.15/app-release.apk"
   ],
-  "apkSha256": "136df8c244731638ca38457012aab26dee1e2b0fd3334f7adcba479141c775ad",
-  "apkSize": 5289447,
+  "apkSha256": "b9109ab3ee0a90e05845f1b1b12e3f34f88e745fe1fcd4ae02ac620d679e1cd8",
+  "apkSize": 5289443,
   "landing": "https://wwbld.lanzouw.com/iFFVb4gg4inc",
   "landingCode": "h373",
-  "notes": "国内下载入口（蓝奏云）"
+  "notes": "收款码铺满弹窗宽度"
 }
