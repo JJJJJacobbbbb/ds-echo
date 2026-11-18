@@ -22,6 +22,8 @@ type Settings = {
   thinking: boolean
   search: boolean
   siderCollapsed: boolean
+  /** 用户是否关掉过"导入历史"引导卡片；关掉后永不再显示 */
+  importGuideDismissed: boolean
 }
 
 /**
@@ -41,6 +43,7 @@ const KEYS = {
   thinking: 'chat-demo:thinking',
   search: 'chat-demo:search',
   siderCollapsed: 'chat-demo:sider-collapsed',
+  importGuideDismissed: 'chat-demo:import-guide-dismissed',
 } as const
 
 const read = (key: string) => {
@@ -111,6 +114,7 @@ export const useSettings = create<Settings>(() => ({
   thinking: read(KEYS.thinking) === 'true',
   search: read(KEYS.search) === 'true',
   siderCollapsed: read(KEYS.siderCollapsed) === 'true',
+  importGuideDismissed: read(KEYS.importGuideDismissed) === 'true',
 }))
 
 export const setLocale = (locale: Locale) => {
@@ -198,4 +202,11 @@ export const setSearch = (search: boolean) => {
 export const setSiderCollapsed = (siderCollapsed: boolean) => {
   write(KEYS.siderCollapsed, String(siderCollapsed))
   useSettings.setState({ siderCollapsed })
+}
+
+
+/** 关掉「导入历史」引导卡片；持久化，之后不再出现 */
+export const dismissImportGuide = () => {
+  write(KEYS.importGuideDismissed, 'true')
+  useSettings.setState({ importGuideDismissed: true })
 }

@@ -1,14 +1,14 @@
 {
-  "version": "0.3.21",
-  "url": "https://github.com/JJJJJacobbbbb/ds-echo/releases/tag/v0.3.21",
-  "apk": "https://github.com/JJJJJacobbbbb/ds-echo/releases/download/v0.3.21/app-release.apk",
+  "version": "0.3.22",
+  "url": "https://github.com/JJJJJacobbbbb/ds-echo/releases/tag/v0.3.22",
+  "apk": "https://github.com/JJJJJacobbbbb/ds-echo/releases/download/v0.3.22/app-release.apk",
   "apkMirrors": [
-    "https://gh-proxy.com/https://github.com/JJJJJacobbbbb/ds-echo/releases/download/v0.3.21/app-release.apk",
-    "https://cors.isteed.cc/https://github.com/JJJJJacobbbbb/ds-echo/releases/download/v0.3.21/app-release.apk"
+    "https://gh-proxy.com/https://github.com/JJJJJacobbbbb/ds-echo/releases/download/v0.3.22/app-release.apk",
+    "https://cors.isteed.cc/https://github.com/JJJJJacobbbbb/ds-echo/releases/download/v0.3.22/app-release.apk"
   ],
-  "apkSha256": "a0adda695632e64562492ffaf99a7fe1bdd6cffa6886f4d1de91ea9db95aadda",
-  "apkSize": 5290431,
+  "apkSha256": "a891efdd3cbcd7af523b8d16f800aa0c45cbdc48721e126c217ca2e88cadb435",
+  "apkSize": 5290647,
   "landing": "https://wwbld.lanzouw.com/iFFVb4gg4inc",
   "landingCode": "h373",
-  "notes": "连上后引导导入历史"
+  "notes": "导入引导卡片可取消且不再出现"
 }

@@ -3,6 +3,7 @@ export const zh = {
   importGuideTitle: '把官方 App 里的聊天记录带过来',
   importGuideBody: '打开 DeepSeek App → 设置 → 数据管理 → 导出对话，得到一个 ZIP 文件；回到这里选择它导入。',
   importGuideAction: '选择文件导入',
+  importGuideDismiss: '取消',
   contentCaveat: '内容由 AI 生成，请仔细甄别',
   expandSiderbarButton: '打开边栏',
   collapseSiderbarButton: '收起边栏',

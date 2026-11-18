@@ -95,6 +95,25 @@
   color: var(--dsw-alias-label-secondary);
 }
 
+.importActions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+/* 「取消」在右下角：点掉之后这张卡片永不再出现 */
+.importDismiss {
+  margin-inline-start: auto;
+  padding: 6px 4px;
+  border: none;
+  background: transparent;
+  color: var(--dsw-alias-label-tertiary);
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+
 .importAction {
   padding: 7px 14px;
   border: 1px solid var(--dsw-alias-brand-primary);
