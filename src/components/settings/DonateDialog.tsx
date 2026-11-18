@@ -24,6 +24,7 @@ export const DonateDialog = ({ onClose }: { onClose: () => void }) => {
       closable
       onClose={onClose}
       className={styles.dialog}
+      mainClassName={styles.body}
       footer={
         <Button variant="outlined" size="m" onClick={onClose}>
           {t('close')}
