@@ -5,9 +5,11 @@
   gap: 8px;
 }
 
+/* 收款海报是竖版（约 3:4），按宽度等比缩放，不要让高度撑爆弹窗 */
 .qr {
-  width: 240px;
-  height: 240px;
+  width: min(100%, 240px);
+  height: auto;
+  max-height: 40vh;
   border-radius: 12px;
   background: #fff;
   object-fit: contain;
