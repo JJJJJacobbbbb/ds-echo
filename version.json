@@ -1,14 +1,14 @@
 {
-  "version": "0.3.17",
-  "url": "https://github.com/JJJJJacobbbbb/ds-echo/releases/tag/v0.3.17",
-  "apk": "https://github.com/JJJJJacobbbbb/ds-echo/releases/download/v0.3.17/app-release.apk",
+  "version": "0.3.18",
+  "url": "https://github.com/JJJJJacobbbbb/ds-echo/releases/tag/v0.3.18",
+  "apk": "https://github.com/JJJJJacobbbbb/ds-echo/releases/download/v0.3.18/app-release.apk",
   "apkMirrors": [
-    "https://gh-proxy.com/https://github.com/JJJJJacobbbbb/ds-echo/releases/download/v0.3.17/app-release.apk",
-    "https://cors.isteed.cc/https://github.com/JJJJJacobbbbb/ds-echo/releases/download/v0.3.17/app-release.apk"
+    "https://gh-proxy.com/https://github.com/JJJJJacobbbbb/ds-echo/releases/download/v0.3.18/app-release.apk",
+    "https://cors.isteed.cc/https://github.com/JJJJJacobbbbb/ds-echo/releases/download/v0.3.18/app-release.apk"
   ],
-  "apkSha256": "aa63e6cc5584b807f1d9fb9dc2ef6dc7a48891a58e2db01137642ff4a12e0219",
-  "apkSize": 5289475,
+  "apkSha256": "fc297406455996e3d8930410b51971b759b15242ae4a03f497429ff95e47e366",
+  "apkSize": 5289611,
   "landing": "https://wwbld.lanzouw.com/iFFVb4gg4inc",
   "landingCode": "h373",
-  "notes": "修复应用内更新插件注册"
+  "notes": "打赏名单改为远端读取"
 }

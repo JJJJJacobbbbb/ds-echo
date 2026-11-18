@@ -1,7 +1,8 @@
+import { useEffect, useState } from 'react'
 import { useTranslate } from '../../i18n/index.js'
 import { Button } from '../base/Button.js'
 import { Modal } from '../base/Modal.js'
-import { listDonations } from '../../services/donations.js'
+import { bundledDonations, fetchDonations, type Donation } from '../../services/donations.js'
 import qr from '../../assets/donate/qrcode.png'
 import styles from './DonateDialog.module.css'
 
@@ -16,7 +17,19 @@ import styles from './DonateDialog.module.css'
  */
 export const DonateDialog = ({ onClose }: { onClose: () => void }) => {
   const t = useTranslate()
-  const donations = listDonations()
+  // 先用内置名单渲染（不闪烁），再异步换成远端最新
+  const [donations, setDonations] = useState<Donation[]>(() => bundledDonations())
+  useEffect(() => {
+    let alive = true
+    void fetchDonations().then((remote) => {
+      if (alive && remote) {
+        setDonations(remote)
+      }
+    })
+    return () => {
+      alive = false
+    }
+  }, [])
 
   return (
     <Modal
