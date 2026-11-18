@@ -39,7 +39,7 @@ import { saveFileForUser } from '../../services/fileSave.js'
 import { ApiKeyConfirm, ApiKeyField, useApiKeyEditor } from './ApiKeyField.js'
 import { AccountPanel } from './AccountPanel.js'
 import { DonateDialog } from './DonateDialog.js'
-import { RELEASES_URL, checkForUpdate, currentVersion, type UpdateResult } from '../../services/update.js'
+import { LANDING_URL, RELEASES_URL, checkForUpdate, currentVersion, type UpdateResult } from '../../services/update.js'
 import { openTrustedUrl } from '../../services/external.js'
 import { canInstallInApp, installApk } from '../../services/apkInstaller.js'
 import { closeSettings, useSettingsDialog, type SettingsSection } from './settingsDialogState.js'
@@ -689,14 +689,26 @@ const UpdateSetting = () => {
       status={status}
       action={
         state && state !== 'checking' && state !== 'installing' && state.status === 'unavailable' ? (
-          <Button
-            variant="outlined"
-            size="m"
-            className={styles.cellButton}
-            onClick={() => void openTrustedUrl(RELEASES_URL)}
-          >
-            {t('updateOpenReleases')}
-          </Button>
+          <>
+            {LANDING_URL ? (
+              <Button
+                variant="primary"
+                size="m"
+                className={styles.cellButton}
+                onClick={() => void openTrustedUrl(LANDING_URL)}
+              >
+                {t('updateOpenLanding')}
+              </Button>
+            ) : null}
+            <Button
+              variant="outlined"
+              size="m"
+              className={styles.cellButton}
+              onClick={() => void openTrustedUrl(RELEASES_URL)}
+            >
+              {t('updateOpenReleases')}
+            </Button>
+          </>
         ) : state && state !== 'checking' && state !== 'installing' && state.status === 'outdated' ? (
           <Button
             variant="primary"

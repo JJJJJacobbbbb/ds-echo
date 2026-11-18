@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+<title>DS Echo 下载</title>
+<!--
+  静态下载页：给连不上 GitHub 的用户用的备用入口。
+  零依赖、单文件，扔到任何静态托管（蓝奏云分享页 / Gitee Pages / Cloudflare Pages / 自己的 OSS）都能用。
+  链接在下面的 LINKS 数组里改；二维码由 scripts/build-download-page.py 生成。
+-->
+<style>
+  :root {
+    --ink: #1c2128;
+    --muted: #6b7280;
+    --line: #e5e9f0;
+    --blue: #3d7cff;
+    --bg: #f6f8fb;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 32px 20px 56px;
+    font: 15px/1.65 -apple-system, "Segoe UI", "Microsoft YaHei", sans-serif;
+    color: var(--ink);
+    background: var(--bg);
+  }
+  main { max-width: 720px; margin: 0 auto; }
+  h1 { margin: 0 0 6px; font-size: 26px; }
+  .sub { margin: 0 0 28px; color: var(--muted); }
+  .card {
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    padding: 20px;
+    margin-bottom: 14px;
+  }
+  .card h2 { margin: 0 0 4px; font-size: 16px; }
+  .card p { margin: 0 0 14px; color: var(--muted); font-size: 13px; }
+  .row { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+  .primary {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 22px;
+    border-radius: 999px;
+    background: var(--blue);
+    color: #fff;
+    font-weight: 600;
+    text-decoration: none;
+  }
+  .qr { width: 132px; height: 132px; border-radius: 10px; background: #fff; border: 1px solid var(--line); }
+  .tag {
+    display: inline-block;
+    margin-left: 8px;
+    padding: 1px 8px;
+    border-radius: 999px;
+    font-size: 12px;
+    background: #eef4ff;
+    color: var(--blue);
+  }
+  .note { font-size: 13px; color: var(--muted); }
+  code { background: #eef1f6; padding: 1px 6px; border-radius: 6px; font-size: 13px; }
+  ol { margin: 8px 0 0; padding-left: 20px; }
+  li { margin-bottom: 6px; }
+</style>
+</head>
+<body>
+<main>
+  <h1>DS Echo</h1>
+  <p class="sub">
+    用它自己的 DeepSeek API Key 继续长对话。第三方客户端，与 DeepSeek 官方无关。
+  </p>
+
+  <div class="card">
+    <h2>1 · 选一个能打开的下载地址</h2>
+    <p>国内网络建议优先用前两个；GitHub 在部分网络下打不开。</p>
+    <div class="row" id="links"></div>
+  </div>
+
+  <div class="card">
+    <h2>2 · 手机上装好之后</h2>
+    <ol>
+      <li>准备一个 API Key：<a href="https://platform.deepseek.com/api_keys" target="_blank" rel="noreferrer">platform.deepseek.com</a></li>
+      <li>打开 App，按引导粘贴 Key</li>
+      <li>设置 → 数据管理 → 导入历史，选官方导出的 ZIP</li>
+    </ol>
+    <p class="note" style="margin-top:12px">
+      首次安装需要在系统弹窗里允许「安装未知应用」。
+    </p>
+  </div>
+
+  <p class="note">
+    版本以 GitHub Releases 为准；本页只镜像安装包，不收集任何数据。
+  </p>
+</main>
+
+<script>
+  // 由 scripts/build-download-page.py 生成：名称 / 地址 / 二维码相对路径 / 是否推荐
+  const LINKS = [
+    { name: "GitHub Releases", url: "https://github.com/JJJJJacobbbbb/ds-echo/releases/latest", qr: "download-qr/github-releases.png", hint: "海外网络；文件最全" },
+  ];
+
+  const wrap = document.getElementById('links');
+  for (const item of LINKS) {
+    const box = document.createElement('div');
+    box.style.cssText = 'display:flex;flex-direction:column;gap:8px;align-items:center';
+    box.innerHTML = `
+      <a class="primary" href="${item.url}" target="_blank" rel="noreferrer">${item.name}${item.primary ? '<span class="tag">推荐</span>' : ''}</a>
+      ${item.qr ? `<img class="qr" src="${item.qr}" alt="${item.name} 二维码" />` : ''}
+      <span class="note">${item.hint || ''}</span>
+    `;
+    wrap.appendChild(box);
+  }
+</script>
+</body>
+</html>

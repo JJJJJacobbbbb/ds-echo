@@ -14,6 +14,13 @@
 /** 仓库（owner/repo）。开源后改这里即可。 */
 export const UPDATE_REPO = 'JJJJJacobbbbb/ds-echo'
 
+/**
+ * 备用下载页（静态页面，见 docs/download.html）。
+ * 用途：GitHub 打不开时，用户仍能拿到 APK。留空则不显示该按钮。
+ * 建议放到国内可达的静态托管（蓝奏云分享页 / Gitee Pages / 自己的 OSS）。
+ */
+export const LANDING_URL = ''
+
 /** 发布页：检查失败时给用户一个手动入口 */
 export const RELEASES_URL = `https://github.com/${UPDATE_REPO}/releases`
 

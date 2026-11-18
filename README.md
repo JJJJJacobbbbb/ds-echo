@@ -27,6 +27,16 @@ DeepSeek 开源了聊天前端，也提供了"导出历史到其他 App"的入�
 | 语音输入 | 录音后走官方 ASR（需麦克风权限） |
 | 安全 | API Key 存在 Android Keystore，不进 localStorage 明文 |
 
+## 下载
+
+- **GitHub Releases**（文件最全）：<https://github.com/JJJJJacobbbbb/ds-echo/releases/latest>
+- **国内打不开 GitHub 时**：用 `docs/download.html` 这个静态下载页（单文件、零依赖，
+  可以放到任何能访问的静态托管上，页面里列了多个镜像和二维码）
+
+> 首次安装需要在系统弹窗里允许「安装未知应用」。
+> 应用内「检查更新」会依次尝试多个源（jsDelivr / GitHub API / 两个 APK 镜像），
+> 下载后强制校验 SHA-256。
+
 ## 快速开始
 
 1. **拿一个 API Key**：<https://platform.deepseek.com/api_keys>（需登录，按用量计费）

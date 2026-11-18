@@ -210,6 +210,7 @@ export const en = {
   updateUnconfigured: 'Repository not configured (set UPDATE_REPO)',
   updateUnavailable: 'Cannot check right now (tried {tried} sources, all unreachable) — open releases manually',
   updateOpenReleases: 'Open releases',
+  updateOpenLanding: 'Mirror download page',
   updateFailed: 'Check failed: {message}',
   currentVersionLabel: 'Version {version}',
   donateSectionLabel: 'Support',
