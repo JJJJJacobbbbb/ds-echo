@@ -29,9 +29,9 @@ MIRRORS = [
     },
     {
         "name": "蓝奏云",
-        "url": "https://wwbld.lanzouw.com/iFFVb4gg4inc",
+        "url": "https://wwbld.lanzouw.com/ipX3B4gltyaf",
         "primary": True,
-        "hint": "国内免客户端；提取码 h373",
+        "hint": "国内免客户端；提取码 fjq0",
     },
     {
         "name": "Gitee Releases",

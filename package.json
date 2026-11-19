@@ -1,6 +1,6 @@
 {
   "name": "dsecho",
-  "version": "0.3.22",
+  "version": "0.3.23",
   "description": "DS Echo —— 基于 DeepSeek API 的 Android 续聊客户端（非官方）。",
   "license": "MIT",
   "private": true,

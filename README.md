@@ -30,7 +30,7 @@ DeepSeek 开源了聊天前端，也提供了"导出历史到其他 App"的入�
 ## 下载
 
 - **GitHub Releases**（文件最全）：<https://github.com/JJJJJacobbbbb/ds-echo/releases/latest>
-- **国内打不开 GitHub 时**：蓝奏云 <https://wwbld.lanzouw.com/iFFVb4gg4inc>（提取码 `h373`）
+- **国内打不开 GitHub 时**：蓝奏云 <https://wwbld.lanzouw.com/ipX3B4gltyaf>（提取码 `fjq0`）
 - 也可以用 `docs/download.html` 这个静态下载页（单文件、零依赖，含二维码，可放到任意静态托管）
 
 > 首次安装需要在系统弹窗里允许「安装未知应用」。
