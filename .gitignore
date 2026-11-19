@@ -20,3 +20,6 @@ chatdata/
 android/keystore.properties
 *.jks
 *.keystore
+
+# 生成物：一页纸 PDF 的中间 HTML（由 make-pdf.py 生成）
+marketing/xhs-2026-11/pdf/render.html
