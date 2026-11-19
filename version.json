@@ -1,10 +1,10 @@
 {
   "version": "0.3.23",
   "url": "https://github.com/JJJJJacobbbbb/ds-echo/releases/tag/v0.3.23",
-  "apk": "https://github.com/JJJJJacobbbbb/ds-echo/releases/download/v0.3.23/app-release.apk",
+  "apk": "https://github.com/JJJJJacobbbbb/ds-echo/releases/download/v0.3.23/dsecho.apk",
   "apkMirrors": [
-    "https://gh-proxy.com/https://github.com/JJJJJacobbbbb/ds-echo/releases/download/v0.3.23/app-release.apk",
-    "https://cors.isteed.cc/https://github.com/JJJJJacobbbbb/ds-echo/releases/download/v0.3.23/app-release.apk"
+    "https://gh-proxy.com/https://github.com/JJJJJacobbbbb/ds-echo/releases/download/v0.3.23/dsecho.apk",
+    "https://cors.isteed.cc/https://github.com/JJJJJacobbbbb/ds-echo/releases/download/v0.3.23/dsecho.apk"
   ],
   "apkSha256": "b4e4c97fca62c514f36a89e148bc7b2227d2254fe155c1ed30c394da50ad8c38",
   "apkSize": 5290651,
