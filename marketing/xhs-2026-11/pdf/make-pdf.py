@@ -27,7 +27,8 @@ HERE = Path(__file__).parent
 CARD_ASSETS = HERE.parent / "cards" / "assets"
 OUT_PDF = HERE / "DS-Echo-安装配置一页纸.pdf"
 PREVIEW = HERE / "预览.png"
-LANZOU = "https://wwbld.lanzouw.com/iFFVb4gg4inc"
+LANZOU = "https://wwbld.lanzouw.com/ipX3B4gltyaf"
+LANZOU_CODE = "fjq0"
 
 
 def data_uri(raw: bytes, mime: str) -> str:
@@ -63,7 +64,7 @@ def check(pdf: Path) -> list[str]:
 
     page = reader.pages[0]
     text = page.extract_text() or ""
-    for need in ["提取码", "h373", "API keys", "导入历史对话", "platform.deepseek.com"]:
+    for need in ["提取码", LANZOU_CODE, "API keys", "导入历史对话", "platform.deepseek.com"]:
         if need not in text:
             problems.append(f"正文里找不到「{need}」")
 
