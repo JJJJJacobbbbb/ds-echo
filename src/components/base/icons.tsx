@@ -523,3 +523,49 @@ export const IconToastError16 = () => (
     />
   </svg>
 )
+
+export const IconCameraOutline20 = () => (
+  <svg width={20} height={20} viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path
+      d="M7.1 5.2 8.2 3.4h3.6l1.1 1.8"
+      stroke="currentColor"
+      strokeWidth={1.4}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+    <rect x="2.6" y="5.6" width="14.8" height="10.6" rx="3" stroke="currentColor" strokeWidth={1.4} />
+    <circle cx="10" cy="10.9" r="2.9" stroke="currentColor" strokeWidth={1.4} />
+  </svg>
+)
+
+export const IconImageOutline20 = () => (
+  <svg width={20} height={20} viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <rect x="2.6" y="3.6" width="14.8" height="12.8" rx="3" stroke="currentColor" strokeWidth={1.4} />
+    <circle cx="7.2" cy="7.9" r="1.4" stroke="currentColor" strokeWidth={1.3} />
+    <path
+      d="M3.1 14.4 7.6 9.9l3.4 3.4 2.5-2.4 3.4 3.4"
+      stroke="currentColor"
+      strokeWidth={1.4}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  </svg>
+)
+
+export const IconFileOutline20 = () => (
+  <svg width={20} height={20} viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path
+      d="M11.4 2.6H6.5A2.4 2.4 0 0 0 4.1 5v10a2.4 2.4 0 0 0 2.4 2.4h7A2.4 2.4 0 0 0 15.9 15V7.1z"
+      stroke="currentColor"
+      strokeWidth={1.4}
+      strokeLinejoin="round"
+    />
+    <path d="M11.4 2.6V7h4.5" stroke="currentColor" strokeWidth={1.4} strokeLinejoin="round" />
+  </svg>
+)
+
+export const IconPlusCircleOutline20 = () => (
+  <svg width={20} height={20} viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M10 4.6v10.8M4.6 10h10.8" stroke="currentColor" strokeWidth={1.6} strokeLinecap="round" />
+  </svg>
+)

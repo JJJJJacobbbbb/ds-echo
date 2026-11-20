@@ -33,6 +33,8 @@ public class MainActivity extends BridgeActivity {
         // JS 侧调用会得到 "not implemented"（真机表现为更新失败）。
         registerPlugin(ApkInstallerPlugin.class);
         registerPlugin(ExternalLinkPlugin.class);
+        registerPlugin(PhotoLibraryPlugin.class);
+        registerPlugin(FilePickerPlugin.class);
         super.onCreate(savedInstanceState);
         // 让页面铺到状态栏/导航栏下方，inset 由本类负责转成 CSS 变量
         WindowCompat.setDecorFitsSystemWindows(getWindow(), false);

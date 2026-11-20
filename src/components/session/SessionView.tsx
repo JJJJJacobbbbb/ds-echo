@@ -37,8 +37,7 @@ export const SessionView = ({
         footer={
           <div className={styles.inputContainer}>
             <ChatInput sessionId={session.id} />
-            <div className={styles.caveat}>{t('contentCaveat')}</div>
-          </div>
+                </div>
         }
       />
     </div>

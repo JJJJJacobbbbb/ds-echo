@@ -1,14 +1,14 @@
 {
-  "version": "0.3.23",
-  "url": "https://github.com/JJJJJacobbbbb/ds-echo/releases/tag/v0.3.23",
-  "apk": "https://github.com/JJJJJacobbbbb/ds-echo/releases/download/v0.3.23/dsecho.apk",
+  "version": "0.3.25",
+  "url": "https://github.com/JJJJJacobbbbb/ds-echo/releases/tag/v0.3.25",
+  "apk": "https://github.com/JJJJJacobbbbb/ds-echo/releases/download/v0.3.25/dsecho.apk",
   "apkMirrors": [
-    "https://gh-proxy.com/https://github.com/JJJJJacobbbbb/ds-echo/releases/download/v0.3.23/dsecho.apk",
-    "https://cors.isteed.cc/https://github.com/JJJJJacobbbbb/ds-echo/releases/download/v0.3.23/dsecho.apk"
+    "https://gh-proxy.com/https://github.com/JJJJJacobbbbb/ds-echo/releases/download/v0.3.25/dsecho.apk",
+    "https://cors.isteed.cc/https://github.com/JJJJJacobbbbb/ds-echo/releases/download/v0.3.25/dsecho.apk"
   ],
-  "apkSha256": "b4e4c97fca62c514f36a89e148bc7b2227d2254fe155c1ed30c394da50ad8c38",
-  "apkSize": 5290651,
+  "apkSha256": "cc1ba8c378bbc92e09c8f78ee752841ea4e0a6c900367416cdd13197f7900ae6",
+  "apkSize": 8675726,
   "landing": "https://wwbld.lanzouw.com/ipX3B4gltyaf",
   "landingCode": "fjq0",
-  "notes": "蓝奏云同步最新版"
+  "notes": "支持拍照与图片发送"
 }

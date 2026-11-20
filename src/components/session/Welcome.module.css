@@ -47,7 +47,7 @@
     justify-content: flex-end;
     max-width: none;
     margin: 0;
-    padding: 0 16px var(--dsecho-safe-bottom, 0px);
+    padding: 0 16px calc(var(--dsecho-safe-bottom, 0px) + 14px);
   }
 
   .greeting {
@@ -73,7 +73,8 @@
   box-sizing: border-box; /* 不加的话 width:100% 会再加 32px 内边距，右侧溢出被裁 */
   width: 100%;
   max-width: 420px;
-  margin: 18px auto 0;
+  /* 简写会覆盖单独的 margin-bottom，间距必须写在这里 */
+  margin: 18px auto 24px;
   padding: 14px 16px;
   border: 1px solid var(--dsw-alias-border-l2);
   border-radius: 14px;

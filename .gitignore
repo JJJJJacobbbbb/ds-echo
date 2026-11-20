@@ -23,3 +23,6 @@ android/keystore.properties
 
 # 生成物：一页纸 PDF 的中间 HTML（由 make-pdf.py 生成）
 marketing/xhs-2026-11/pdf/render.html
+
+# 本地产出的测试包
+build-test/

@@ -1,0 +1,133 @@
+/*
+ * 附件面板：直接悬浮在背景上，没有卡片底框（用户要求）。
+ * 面板在输入框下方，输入框被它顶起；间距由外层布局控制。
+ */
+
+.panel {
+  box-sizing: border-box;
+  width: 100%;
+  margin-top: 10px;
+  padding: 0;
+  background: transparent;
+  animation: fade-in 160ms ease-out;
+}
+
+/* 最近照片：横排大图，无边框、无底板 */
+.recent {
+  display: flex;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.thumbnails {
+  display: flex;
+  gap: 10px;
+  overflow-x: auto;
+  padding: 2px;
+  scrollbar-width: none;
+}
+
+.thumbnails::-webkit-scrollbar {
+  display: none;
+}
+
+.thumbnailCell {
+  position: relative;
+  flex: none;
+}
+
+.thumbnail {
+  display: block;
+  width: 88px;
+  height: 88px;
+  padding: 0;
+  border: none;
+  border-radius: 12px;
+  overflow: hidden;
+  background: transparent;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.thumbnail img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+/* 选中标记：空心圆环 → 选中后白色实心圆 + 黑色对号 */
+.check {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  box-sizing: border-box;
+  border-radius: 50%;
+  border: 1.5px solid rgba(255, 255, 255, 0.92);
+  background: rgba(0, 0, 0, 0.18);
+  color: #111;
+  pointer-events: none;
+}
+
+.checked {
+  border-color: #fff;
+  background: #fff;
+}
+
+/* 三个入口：略放大 */
+.options {
+  display: flex;
+  gap: 10px;
+}
+
+.option {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 20px 10px;
+  border: none;
+  border-radius: 16px;
+  background: var(--dsw-alias-interactive-bg-hover);
+  color: var(--dsw-alias-label-primary);
+  font: inherit;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.option:active {
+  background: var(--dsw-alias-interactive-bg-active);
+}
+
+.icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--dsw-alias-label-primary);
+  transform: scale(1.15);
+}
+
+.label {
+  font-size: 14px;
+  line-height: 20px;
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .panel {
+    animation: none;
+  }
+}

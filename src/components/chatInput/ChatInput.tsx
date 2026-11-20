@@ -1,8 +1,8 @@
 import clsx from 'clsx'
-import { memo, useCallback, useEffect, useLayoutEffect, useRef } from 'react'
+import { memo, useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import {
   IconGlobeLanguageOutline14,
-  IconPaperclipOutline16,
+  IconPlusCircleOutline20,
   IconSendOutline16,
   IconStopFill16,
   IconThinkOutline14,
@@ -26,7 +26,11 @@ import { Tooltip } from '../base/Tooltip.js'
 import { ensureApiKey } from '../settings/settingsDialogState.js'
 import { DragMask, useFileDrop } from './DragMask.js'
 import { showToast } from '../base/toastState.js'
-import { ACCEPT, useUploads } from '../../services/attachments.js'
+import { useUploads } from '../../services/attachments.js'
+import { AttachSheet } from './AttachSheet.js'
+import { canTakePhoto, takePhoto } from '../../services/camera.js'
+import { hasPhotoAccess, photoAsFile, requestPhotoAccess, type RecentPhoto } from '../../services/photoLibrary.js'
+import { nativeFilePickerAvailable, pickFiles } from '../../services/filePicker.js'
 import { DraftAttachments } from './DraftAttachments.js'
 import { useVoiceInput } from './useVoiceInput.js'
 import { VoiceButton } from './VoiceButton.js'
@@ -53,7 +57,14 @@ const Input = ({ sessionId }: { sessionId: string | null }) => {
   const importingHistory = useChatStore((state) => state.importingHistory)
   const isMobile = useIsMobile()
   const search = useSettings((state) => state.search)
+  const wrapperRef = useRef<HTMLDivElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  // 拍照与相册各自一个 input：capture / accept 只有挂在 input 上才生效
+  const cameraInputRef = useRef<HTMLInputElement>(null)
+  const albumInputRef = useRef<HTMLInputElement>(null)
+  const [attachOpen, setAttachOpen] = useState(false)
+  // 面板里已选中的照片 id；与输入框里的附件必须保持一致
+  const [selectedPhotoIds, setSelectedPhotoIds] = useState<string[]>([])
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const togglesRef = useRef<HTMLDivElement>(null)
 
@@ -73,6 +84,140 @@ const Input = ({ sessionId }: { sessionId: string | null }) => {
     observer.observe(toggles)
     return () => observer.disconnect()
   }, [t])
+
+  // 拍照走原生相机插件（<input capture> 在 WebView 里各家 ROM 表现不一）
+  const shootPhoto = async () => {
+    const result = await takePhoto()
+    if (result.status === 'ok') {
+      acceptFiles([result.file])
+      return
+    }
+    if (result.status === 'denied') {
+      showToast({ type: 'error', key: 'takePhotoDenied' })
+      return
+    }
+    if (result.status === 'error') {
+      showToast({ type: 'error', key: 'takePhotoFailed' })
+    }
+    // cancelled：用户自己退的，什么都不做
+  }
+
+  /*
+   * 勾选状态必须跟着草稿走：发出去、或被别处清空后，
+   * 残留的 id 会让面板显示「已选中但输入框里没有」的矛盾状态。
+   */
+  useEffect(() => {
+    setSelectedPhotoIds((current) => {
+      if (current.length === 0) {
+        return current
+      }
+      const alive = new Set(attachments.map((item) => item.file))
+      const next = current.filter((id) => {
+        const file = photoFiles.current.get(id)
+        return file ? alive.has(file) : false
+      })
+      return next.length === current.length ? current : next
+    })
+  }, [attachments])
+
+  /*
+   * 点面板和输入框之外的空白区域：收起附件面板。
+   * 用 pointerdown + 捕获阶段，确保在页面自己的点击处理之前判断，
+   * 且不阻断后续事件（用户可以正常点消息列表里的东西）。
+   */
+  useEffect(() => {
+    if (!attachOpen) {
+      return
+    }
+    const onPointerDown = (event: PointerEvent) => {
+      const target = event.target as Element | null
+      if (!target) {
+        return
+      }
+      if (target.closest('[data-attach-panel]') || wrapperRef.current?.contains(target)) {
+        return
+      }
+      setAttachOpen(false)
+    }
+    document.addEventListener('pointerdown', onPointerDown, true)
+    return () => document.removeEventListener('pointerdown', onPointerDown, true)
+  }, [attachOpen])
+
+  // 缩略图与已加入草稿的 File 对应关系：取消选中时按 File 引用找回附件并移除
+  const photoFiles = useRef(new Map<string, File>())
+
+  const selectPhoto = async (photo: RecentPhoto) => {
+    try {
+      const file = await photoAsFile(photo)
+      photoFiles.current.set(photo.id, file)
+      setSelectedPhotoIds((current) => [...current, photo.id])
+      acceptFiles([file])
+    } catch {
+      showToast({ type: 'error', key: 'photoReadFailed' })
+    }
+  }
+
+  /** 从输入框移除某张已选照片：勾选状态一起清掉 */
+  const dropPhotoFiles = (files: File[]) => {
+    if (files.length === 0) {
+      return
+    }
+    setSelectedPhotoIds((current) =>
+      current.filter((id) => {
+        const file = photoFiles.current.get(id)
+        return file ? !files.includes(file) : false
+      }),
+    )
+    for (const [id, file] of photoFiles.current) {
+      if (files.includes(file)) {
+        photoFiles.current.delete(id)
+      }
+    }
+  }
+
+  const unselectPhoto = (photo: RecentPhoto) => {
+    const file = photoFiles.current.get(photo.id)
+    if (!file) {
+      return
+    }
+    photoFiles.current.delete(photo.id)
+    setSelectedPhotoIds((current) => current.filter((id) => id !== photo.id))
+    const target = getDraft(sessionId).attachments.find((item) => item.file === file)
+    if (target) {
+      removeDraftAttachment(sessionId, target.id)
+    }
+  }
+
+  // 相册入口：只有点它时才申请相册权限（用户要求）
+  const openAlbum = async () => {
+    if (nativeFilePickerAvailable()) {
+      try {
+        if (!(await hasPhotoAccess()) && !(await requestPhotoAccess())) {
+          showToast({ type: 'error', key: 'albumDenied' })
+          return
+        }
+      } catch {
+        // 权限接口异常时仍尝试打开系统选择器
+      }
+    }
+    albumInputRef.current?.click()
+  }
+
+  // 文件入口：原生平台走 ACTION_OPEN_DOCUMENT（系统文档界面），否则用 input
+  const openFiles = async () => {
+    if (!nativeFilePickerAvailable()) {
+      fileInputRef.current?.click()
+      return
+    }
+    try {
+      const files = await pickFiles()
+      if (files.length > 0) {
+        acceptFiles(files)
+      }
+    } catch {
+      showToast({ type: 'error', key: 'filePickFailed' })
+    }
+  }
 
   const acceptFiles = (files: File[]) => {
     if (files.length === 0 || useChatStore.getState().importingHistory || !ensureApiKey()) {
@@ -94,6 +239,11 @@ const Input = ({ sessionId }: { sessionId: string | null }) => {
   const removeFile = useCallback(
     (id: string) => {
       if (!useChatStore.getState().importingHistory) {
+        // 若这张图来自面板的最近照片，同步取消下面的勾选（上下一一对应）
+        const attachment = getDraft(sessionId).attachments.find((item) => item.id === id)
+        if (attachment) {
+          dropPhotoFiles([attachment.file])
+        }
         removeDraftAttachment(sessionId, id)
       }
     },
@@ -153,8 +303,13 @@ const Input = ({ sessionId }: { sessionId: string | null }) => {
   }
 
   return (
+    <>
     <div
-      className={clsx(styles.wrapper, sessionId === null ? styles.home : styles.session)}
+      ref={wrapperRef}
+      className={clsx(
+        styles.wrapper,
+        sessionId === null ? styles.home : styles.session,
+      )}
       onClick={(event) => {
         if (event.target === event.currentTarget) {
           textareaRef.current?.focus({ preventScroll: true })
@@ -174,12 +329,15 @@ const Input = ({ sessionId }: { sessionId: string | null }) => {
           value={text}
           onChange={(event) => setText(event.target.value)}
           onMouseDown={(event) => {
+            // 点输入框就收起附件面板，并把焦点还给输入框（随后系统弹出键盘）
+            setAttachOpen(false)
             // 首次点击时手动聚焦，避免 Safari 把整个页面滚到输入框位置。
             if (isMobile && event.button === 0 && document.activeElement !== event.currentTarget) {
               event.preventDefault()
               event.currentTarget.focus({ preventScroll: true })
             }
           }}
+          onFocus={() => setAttachOpen(false)}
           onKeyDown={(event) => {
             if (event.key === 'Enter' && !event.shiftKey && !event.nativeEvent.isComposing) {
               event.preventDefault()
@@ -243,18 +401,41 @@ const Input = ({ sessionId }: { sessionId: string | null }) => {
           />
           <IconButton
             size="m"
-            tone="primary"
-            icon={<IconPaperclipOutline16 />}
+            className={styles.bareButton}
+            icon={<IconPlusCircleOutline20 />}
             tooltip={t('uploadFile')}
             disabled={importingHistory}
-            onClick={() => ensureApiKey() && fileInputRef.current?.click()}
+            onClick={() => ensureApiKey() && setAttachOpen(true)}
           />
+          {/* 不设 accept：系统文件管理器会隐藏不匹配的文件，与原生「文件」入口不一致 */}
           <input
             ref={fileInputRef}
             type="file"
             multiple
             hidden
-            accept={ACCEPT}
+            onChange={(event) => {
+              acceptFiles(Array.from(event.target.files ?? []))
+              event.target.value = ''
+            }}
+          />
+          {/* capture 让安卓直接调起相机；桌面端没有这个概念，所以菜单里不显示「拍照」 */}
+          <input
+            ref={cameraInputRef}
+            type="file"
+            hidden
+            accept="image/*"
+            capture="environment"
+            onChange={(event) => {
+              acceptFiles(Array.from(event.target.files ?? []))
+              event.target.value = ''
+            }}
+          />
+          <input
+            ref={albumInputRef}
+            type="file"
+            multiple
+            hidden
+            accept="image/*"
             onChange={(event) => {
               acceptFiles(Array.from(event.target.files ?? []))
               event.target.value = ''
@@ -287,5 +468,18 @@ const Input = ({ sessionId }: { sessionId: string | null }) => {
       </div>
       {dragging ? <DragMask /> : null}
     </div>
+      {/* 面板在输入框下方：与官方一致，输入框在上、面板像键盘一样从底部顶起 */}
+      <AttachSheet
+        open={attachOpen}
+        showCamera={isMobile}
+        onClose={() => setAttachOpen(false)}
+        onCamera={() => (canTakePhoto() ? void shootPhoto() : cameraInputRef.current?.click())}
+        onAlbum={() => void openAlbum()}
+        onFile={() => void openFiles()}
+        selectedIds={selectedPhotoIds}
+        onSelectPhoto={(photo) => void selectPhoto(photo)}
+        onUnselectPhoto={unselectPhoto}
+      />
+    </>
   )
 }

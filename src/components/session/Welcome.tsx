@@ -42,7 +42,6 @@ export const Welcome = () => {
           </section>
         )}
         <ChatInput sessionId={null} />
-        {isMobile ? <div className={styles.caveat}>{t('contentCaveat')}</div> : null}
       </div>
     </div>
   )

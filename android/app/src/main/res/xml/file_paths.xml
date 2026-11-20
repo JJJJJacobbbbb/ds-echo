@@ -1,4 +1,20 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!--
+  FileProvider 路径白名单。
+  
+  这里必须同时覆盖两类用途，因为 **相机插件和我们共用同一个 authority**
+  （`${applicationId}.fileprovider`，插件里是硬编码的）：
+  
+  1. 应用内更新的 APK：写在 cacheDir 根下 → cache-path
+  2. 相机插件的临时照片：写在 getExternalFilesDir(Pictures) → external-files-path
+  
+  之前只有 cache-path，导致拍照时 FileProvider.getUriForFile 找不到根目录直接抛异常，
+  表现就是「给了相机权限还是提示没权限」。
+  
+  路径都尽量收窄到具体子目录，不整盘暴露。
+-->
 <paths xmlns:android="http://schemas.android.com/apk/res/android">
     <cache-path name="updates" path="." />
+    <external-files-path name="camera" path="Pictures" />
+    <external-cache-path name="external_cache" path="." />
 </paths>
