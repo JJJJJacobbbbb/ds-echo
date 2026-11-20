@@ -1,14 +1,14 @@
 {
-  "version": "0.3.26",
-  "url": "https://github.com/JJJJJacobbbbb/ds-echo/releases/tag/v0.3.26",
-  "apk": "https://github.com/JJJJJacobbbbb/ds-echo/releases/download/v0.3.26/dsecho.apk",
+  "version": "0.3.27",
+  "url": "https://github.com/JJJJJacobbbbb/ds-echo/releases/tag/v0.3.27",
+  "apk": "https://github.com/JJJJJacobbbbb/ds-echo/releases/download/v0.3.27/dsecho.apk",
   "apkMirrors": [
-    "https://gh-proxy.com/https://github.com/JJJJJacobbbbb/ds-echo/releases/download/v0.3.26/dsecho.apk",
-    "https://cors.isteed.cc/https://github.com/JJJJJacobbbbb/ds-echo/releases/download/v0.3.26/dsecho.apk"
+    "https://gh-proxy.com/https://github.com/JJJJJacobbbbb/ds-echo/releases/download/v0.3.27/dsecho.apk",
+    "https://cors.isteed.cc/https://github.com/JJJJJacobbbbb/ds-echo/releases/download/v0.3.27/dsecho.apk"
   ],
-  "apkSha256": "9af70e9cefca028eea55dcf601cb66384cb3f0ac6ac49f4d37e398848e347d40",
-  "apkSize": 8680150,
+  "apkSha256": "2ec0c5d6e5d6da55585b19a8eae02d2aea6146fcd2bd0448f3e2a9dfa753ee95",
+  "apkSize": 8721630,
   "landing": "https://wwbld.lanzouw.com/ipX3B4gltyaf",
   "landingCode": "fjq0",
-  "notes": "全局动效与语音输入重做"
+  "notes": "图片预览修复与收款码更新"
 }

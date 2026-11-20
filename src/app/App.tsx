@@ -17,6 +17,7 @@ import { Welcome } from '../components/session/Welcome.js'
 import { SettingsDialog } from '../components/settings/SettingsDialog.js'
 import { SetupGuide } from '../components/onboarding/SetupGuide.js'
 import { Toast } from '../components/base/Toast.js'
+import { ImageViewer } from '../components/files/ImageViewer.js'
 import { showToast } from '../components/base/toastState.js'
 import { onUploadNotice } from '../services/attachments.js'
 import { Button } from '../components/base/Button.js'
@@ -177,6 +178,7 @@ export const App = () => {
       </div>
       <SettingsDialog />
       <Toast />
+      <ImageViewer />
     </>
   )
 }

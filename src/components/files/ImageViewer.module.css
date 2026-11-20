@@ -1,0 +1,26 @@
+/* 大图查看器：铺满屏幕，图片等比缩放完整可见 */
+
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  /* 纯黑更聚焦，且与系统相册观感一致 */
+  background: rgba(0, 0, 0, 0.94);
+  animation: ds-fade-in var(--motion-fast) var(--motion-ease) both;
+}
+
+.image {
+  /* 关键：限制在视口内完整显示，不再"特别大" */
+  max-width: 100%;
+  max-height: 100%;
+  width: auto;
+  height: auto;
+  object-fit: contain;
+  /* 上下留一点边，避免贴住状态栏与导航条 */
+  padding: calc(var(--dsecho-safe-top, 0px) + 8px) 8px calc(var(--dsecho-safe-bottom, 0px) + 8px);
+  box-sizing: border-box;
+  animation: ds-pop-in var(--motion-normal) var(--motion-ease) both;
+}

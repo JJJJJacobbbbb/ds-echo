@@ -459,3 +459,19 @@
 .sendButton > svg {
   animation: var(--motion-animation-pop-in) var(--motion-fast) var(--motion-ease) backwards;
 }
+
+/* 草稿缩略图：整块可点，点开看大图（删除仍由右上角叉号负责） */
+.attachmentPreview {
+  display: block;
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.attachmentPreview:active {
+  opacity: 0.85;
+}

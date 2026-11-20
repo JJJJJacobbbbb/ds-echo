@@ -6,6 +6,7 @@ import type { DraftAttachment } from '../../services/chat/drafts.js'
 import { IconCloseFill14, IconRefreshOutline16 } from '../base/icons.js'
 import { Tooltip } from '../base/Tooltip.js'
 import { FileCard } from '../files/FileCard.js'
+import { openImage } from '../files/imageViewerState.js'
 import styles from './ChatInput.module.css'
 
 const UPLOADING: UploadTask = { status: 'uploading' }
@@ -62,7 +63,15 @@ const AttachmentItem = ({
       className={clsx(styles.attachment, failed && styles.attachmentFailed)}
       title={error ?? item.file.name}
     >
-      <img src={item.previewUrl} alt={item.file.name} />
+      {/* 点缩略图看大图；右上角叉号仍是删除 */}
+      <button
+        type="button"
+        className={styles.attachmentPreview}
+        aria-label={item.file.name}
+        onClick={() => openImage(item.previewUrl ?? '', item.file.name)}
+      >
+        <img src={item.previewUrl} alt={item.file.name} />
+      </button>
       {status === 'uploading' ? <div className={styles.uploading} /> : null}
       {failed && retry ? (
         <Tooltip content={retryLabel}>

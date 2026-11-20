@@ -508,9 +508,7 @@ const Input = ({
               >
                 <span role="status" aria-live="polite">
                   {t(
-                    voice.status === 'starting'
-                      ? 'voiceInputStarting'
-                      : voice.status === 'transcribing'
+                    voice.status === 'transcribing'
                         ? 'voiceInputTranscribing'
                         : recording
                           ? cancelling
@@ -535,6 +533,8 @@ const Input = ({
                 className={clsx(styles.toggle, thinking && styles.selected)}
                 aria-label={t('thinkingSwitch')}
                 aria-pressed={thinking}
+                /* 按下时不让焦点离开输入框，否则键盘会收起 */
+                onMouseDown={(event) => event.preventDefault()}
                 onClick={() => setThinking(!thinking)}
               >
                 <IconThinkOutline14 />
@@ -547,6 +547,7 @@ const Input = ({
                 className={clsx(styles.toggle, search && styles.selected)}
                 aria-label={t('search')}
                 aria-pressed={search}
+                onMouseDown={(event) => event.preventDefault()}
                 onClick={() => setSearch(!search)}
               >
                 <IconGlobeLanguageOutline14 />
