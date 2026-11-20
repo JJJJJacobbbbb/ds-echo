@@ -21,8 +21,12 @@
   box-shadow:
     0 0 4px 2px rgba(0, 0, 0, 0.04),
     0 4px 16px 0 rgba(0, 0, 0, 0.1);
-  animation: enter 0.2s var(--ds-ease-in-out);
+  animation: var(--motion-animation-pop-in) var(--motion-normal) var(--motion-ease) backwards;
   pointer-events: none;
+}
+
+.toast[data-state='closed'] {
+  animation: var(--motion-animation-pop-out) var(--motion-exit) var(--motion-leave) both;
 }
 
 /* 带图标时图标在左、文字左对齐，整体仍居中 */
@@ -50,12 +54,5 @@
 
   &:hover {
     text-decoration: underline;
-  }
-}
-
-@keyframes enter {
-  from {
-    opacity: 0;
-    transform: translateY(-8px);
   }
 }

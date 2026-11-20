@@ -35,3 +35,7 @@
   margin: 0 auto;
   padding-bottom: 24px;
 }
+
+.column > [data-message-entrance='true'] {
+  animation: var(--motion-animation-rise-in) var(--motion-normal) var(--motion-ease) backwards;
+}

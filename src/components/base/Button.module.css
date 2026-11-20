@@ -16,6 +16,7 @@
   user-select: none;
   outline: none;
   transition:
+    transform var(--motion-fast) var(--motion-ease),
     background-color var(--ds-transition-duration) var(--ds-ease-in-out),
     opacity var(--ds-transition-duration) var(--ds-ease-in-out);
 

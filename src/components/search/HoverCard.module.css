@@ -1,4 +1,5 @@
 .card {
+  animation: var(--motion-animation-pop-in) var(--motion-normal) var(--motion-ease) backwards;
   position: fixed;
   z-index: 950;
   box-sizing: border-box;
@@ -8,4 +9,8 @@
   border: 1px solid var(--dsw-alias-border-inverted);
   background: var(--dsw-specific-menu);
   box-shadow: var(--dsw-shadow-lv3);
+}
+
+.card[data-state='closed'] {
+  animation: var(--motion-animation-pop-out) var(--motion-exit) var(--motion-leave) both;
 }

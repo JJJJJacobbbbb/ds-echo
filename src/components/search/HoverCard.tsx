@@ -2,6 +2,7 @@ import { useEffect, type HTMLAttributes, type MutableRefObject, type ReactNode }
 import { createPortal } from 'react-dom'
 import { useAnchoredPosition, useDelayedOpen } from '../base/anchored.js'
 import styles from './HoverCard.module.css'
+import { usePresence } from '../base/Presence.js'
 
 const ENTER_DELAY = 300
 const LEAVE_DELAY = 100
@@ -21,8 +22,9 @@ export const HoverCard = ({
   children: ReactNode
 }) => {
   const { open, schedule, cancel } = useDelayedOpen()
+  const { mounted, state } = usePresence(open)
   const { anchorRef, floatingRef, position } = useAnchoredPosition<HTMLSpanElement, HTMLDivElement>(
-    open,
+    mounted,
     { align: 'center', offset: GAP }
   )
 
@@ -37,11 +39,14 @@ export const HoverCard = ({
           onMouseLeave: () => schedule(false, LEAVE_DELAY),
         },
       })}
-      {open
+      {mounted
         ? createPortal(
             <div
               ref={floatingRef}
               className={styles.card}
+              data-state={state}
+              data-motion-surface
+              {...(!open ? { inert: '' } : {})}
               style={position ?? { top: 0, left: 0, visibility: 'hidden' }}
               onMouseEnter={cancel}
               onMouseLeave={() => schedule(false, LEAVE_DELAY)}

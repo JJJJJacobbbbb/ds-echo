@@ -106,7 +106,19 @@ export const App = () => {
   return (
     <>
       <div ref={frameRef} className={styles.frame}>
-        {isMobile ? <MobileSider /> : siderCollapsed ? null : <Sider />}
+        {isMobile ? (
+          <MobileSider />
+        ) : (
+          <div
+            className={styles.desktopSider}
+            data-collapsed={siderCollapsed}
+            {...(siderCollapsed ? { inert: '' } : {})}
+          >
+            <div className={styles.desktopSiderClip}>
+              <Sider />
+            </div>
+          </div>
+        )}
         <main className={styles.main}>
           {saveError ? (
             <div className={styles.saveError} role="alert">
@@ -151,6 +163,7 @@ export const App = () => {
               </div>
             ) : session ? (
               <SessionView
+                key={session.id}
                 session={session}
                 streaming={streaming}
                 siderCollapsed={siderCollapsed}

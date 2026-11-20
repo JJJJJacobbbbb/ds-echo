@@ -1,4 +1,5 @@
 .view {
+  animation: var(--motion-animation-fade-in) var(--motion-normal) var(--motion-ease) backwards;
   position: absolute;
   inset: 0;
   display: flex;

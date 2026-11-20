@@ -3,6 +3,8 @@
 }
 
 .menu {
+  animation: var(--motion-animation-pop-in) var(--motion-normal) var(--motion-ease) backwards;
+  transform-origin: top left;
   position: fixed;
   z-index: 900;
   box-sizing: border-box;
@@ -14,6 +16,10 @@
     0 0 1px rgba(0, 0, 0, 0.2),
     0 0 4px rgba(0, 0, 0, 0.02),
     0 12px 32px rgba(0, 0, 0, 0.08);
+}
+
+.menu[data-state='closed'] {
+  animation: var(--motion-animation-pop-out) var(--motion-exit) var(--motion-leave) both;
 }
 
 .option {

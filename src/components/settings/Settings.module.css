@@ -70,6 +70,7 @@
 }
 
 .content {
+  animation: var(--motion-animation-rise-in) var(--motion-normal) var(--motion-ease) backwards;
   display: flex;
   flex: 1 0 0;
   flex-direction: column;
@@ -300,6 +301,8 @@
 
 @media not all and (min-width: 768px) {
   .dialog {
+    --modal-enter-animation: var(--motion-animation-sheet-in);
+    --modal-exit-animation: var(--motion-animation-sheet-out);
     align-self: flex-end;
     width: 100%;
     max-width: none;

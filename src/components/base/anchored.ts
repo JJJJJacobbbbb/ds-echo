@@ -133,7 +133,9 @@ export const useAnchoredPosition = <T extends HTMLElement, F extends HTMLElement
     const spaceBelow = window.innerHeight - rect.bottom - offset - VIEWPORT_PADDING
 
     if (maxHeight === undefined) {
-      const { width, height } = floating.getBoundingClientRect()
+      // Transforms used by enter/exit animations must not affect anchor geometry.
+      const width = floating.offsetWidth
+      const height = floating.offsetHeight
       const resolved = resolveSide(spaceAbove, spaceBelow, side, height)
       applyPosition({
         top: resolved === 'top' ? rect.top - offset - height : rect.bottom + offset,

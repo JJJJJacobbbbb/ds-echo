@@ -1,4 +1,5 @@
 .overlay {
+  animation: var(--motion-animation-fade-in) var(--motion-normal) var(--motion-ease) backwards;
   --overlay-opacity: 0.36;
   position: fixed;
   inset: 0;
@@ -24,6 +25,10 @@
 }
 
 .content {
+  --modal-enter-animation: var(--motion-animation-pop-in);
+  --modal-exit-animation: var(--motion-animation-pop-out);
+  animation: var(--modal-enter-animation) var(--motion-enter) var(--motion-ease) backwards;
+  outline: none;
   display: flex;
   flex-direction: column;
   box-sizing: border-box;
@@ -74,4 +79,12 @@
   justify-content: flex-end;
   gap: 8px;
   margin-top: 20px;
+}
+
+.overlay[data-state='closed'] {
+  animation: var(--motion-animation-fade-out) var(--motion-exit) var(--motion-leave) both;
+}
+
+.overlay[data-state='closed'] .content {
+  animation: var(--modal-exit-animation) var(--motion-exit) var(--motion-leave) both;
 }

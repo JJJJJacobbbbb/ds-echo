@@ -9,7 +9,8 @@
  * - **照片选了就加**：没有「添加 N 张」按钮，点一张立刻进输入框，面板不关；
  *   再点一次取消。缩略图右上角始终有一个可点的叉号，取消选中与点叉号是同一个动作。
  */
-import { useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
+import { usePresence } from '../base/Presence.js'
 import { useTranslate } from '../../i18n/index.js'
 import { IconCameraOutline20, IconFileOutline20, IconImageOutline20 } from '../base/icons.js'
 import {
@@ -47,26 +48,8 @@ export const AttachSheet = ({
   onUnselectPhoto,
 }: Props) => {
   const t = useTranslate()
-  const panelRef = useRef<HTMLDivElement>(null)
+  const { mounted, state } = usePresence(open)
   const [photos, setPhotos] = useState<RecentPhoto[]>([])
-
-  useLayoutEffect(() => {
-    if (!open || !panelRef.current) {
-      document.documentElement.style.removeProperty('--attach-sheet-height')
-      return
-    }
-    const node = panelRef.current
-    const publish = () => {
-      document.documentElement.style.setProperty('--attach-sheet-height', `${node.offsetHeight}px`)
-    }
-    publish()
-    const observer = new ResizeObserver(publish)
-    observer.observe(node)
-    return () => {
-      observer.disconnect()
-      document.documentElement.style.removeProperty('--attach-sheet-height')
-    }
-  }, [open])
 
   // 打开面板只读「有没有权限」，不主动申请；没权限就整块不显示
   useEffect(() => {
@@ -101,10 +84,6 @@ export const AttachSheet = ({
     }
   }, [open])
 
-  if (!open) {
-    return null
-  }
-
   const pick = (action: () => void) => () => {
     onClose()
     action()
@@ -122,70 +101,84 @@ export const AttachSheet = ({
 
   return (
     <div
-      ref={panelRef}
-      className={styles.panel}
-      role="dialog"
-      data-attach-panel
-      aria-label={t('attachSheetTitle')}
+      className={styles.reveal}
+      data-state={state}
+      aria-hidden={!open}
+      {...(!open ? { inert: '' } : {})}
     >
-      {photos.length > 0 ? (
-        <div className={styles.recent}>
-          <div className={styles.thumbnails}>
-            {photos.map((photo) => {
-              const chosen = isSelected(photo.id)
-              return (
-                <div key={photo.id} className={styles.thumbnailCell}>
-                  <button
-                    type="button"
-                    className={styles.thumbnail}
-                    aria-label={t('attachSheetRecentPhoto')}
-                    aria-pressed={chosen}
-                    onClick={() => (chosen ? unselect(photo) : select(photo))}
-                  >
-                    <img src={`data:image/jpeg;base64,${photo.thumbnail}`} alt="" />
-                  </button>
-                  {/* 选中标记：未选中是空心圆环，选中后变白色实心圆 + 黑色对号 */}
-                  <span className={chosen ? `${styles.check} ${styles.checked}` : styles.check} aria-hidden>
-                    {chosen ? (
-                      <svg width="13" height="13" viewBox="0 0 14 14" fill="none">
-                        <path
-                          d="M3 7.2 5.8 10 11 4.4"
-                          stroke="currentColor"
-                          strokeWidth={2}
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                        />
-                      </svg>
-                    ) : null}
-                  </span>
+      <div className={styles.clip}>
+        {mounted ? (
+          <div
+            className={styles.panel}
+            id="chat-attach-sheet"
+            role="dialog"
+            data-attach-panel
+            aria-label={t('attachSheetTitle')}
+          >
+            {photos.length > 0 ? (
+              <div className={styles.recent}>
+                <div className={styles.thumbnails}>
+                  {photos.map((photo) => {
+                    const chosen = isSelected(photo.id)
+                    return (
+                      <div key={photo.id} className={styles.thumbnailCell}>
+                        <button
+                          type="button"
+                          className={styles.thumbnail}
+                          aria-label={t('attachSheetRecentPhoto')}
+                          aria-pressed={chosen}
+                          onClick={() => (chosen ? unselect(photo) : select(photo))}
+                        >
+                          <img src={`data:image/jpeg;base64,${photo.thumbnail}`} alt="" />
+                        </button>
+                        {/* 选中标记：未选中是空心圆环，选中后变白色实心圆 + 黑色对号 */}
+                        <span
+                          className={chosen ? `${styles.check} ${styles.checked}` : styles.check}
+                          aria-hidden
+                        >
+                          {chosen ? (
+                            <svg width="13" height="13" viewBox="0 0 14 14" fill="none">
+                              <path
+                                d="M3 7.2 5.8 10 11 4.4"
+                                stroke="currentColor"
+                                strokeWidth={2}
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                              />
+                            </svg>
+                          ) : null}
+                        </span>
+                      </div>
+                    )
+                  })}
                 </div>
-              )
-            })}
-          </div>
-        </div>
-      ) : null}
+              </div>
+            ) : null}
 
-      <div className={styles.options}>
-        {showCamera ? (
-          <button type="button" className={styles.option} onClick={pick(onCamera)}>
-            <span className={styles.icon}>
-              <IconCameraOutline20 />
-            </span>
-            <span className={styles.label}>{t('attachSheetCamera')}</span>
-          </button>
+            <div className={styles.options}>
+              {showCamera ? (
+                <button type="button" className={styles.option} onClick={pick(onCamera)}>
+                  <span className={styles.icon}>
+                    <IconCameraOutline20 />
+                  </span>
+                  <span className={styles.label}>{t('attachSheetCamera')}</span>
+                </button>
+              ) : null}
+              <button type="button" className={styles.option} onClick={pick(onAlbum)}>
+                <span className={styles.icon}>
+                  <IconImageOutline20 />
+                </span>
+                <span className={styles.label}>{t('attachSheetAlbum')}</span>
+              </button>
+              <button type="button" className={styles.option} onClick={pick(onFile)}>
+                <span className={styles.icon}>
+                  <IconFileOutline20 />
+                </span>
+                <span className={styles.label}>{t('attachSheetFile')}</span>
+              </button>
+            </div>
+          </div>
         ) : null}
-        <button type="button" className={styles.option} onClick={pick(onAlbum)}>
-          <span className={styles.icon}>
-            <IconImageOutline20 />
-          </span>
-          <span className={styles.label}>{t('attachSheetAlbum')}</span>
-        </button>
-        <button type="button" className={styles.option} onClick={pick(onFile)}>
-          <span className={styles.icon}>
-            <IconFileOutline20 />
-          </span>
-          <span className={styles.label}>{t('attachSheetFile')}</span>
-        </button>
       </div>
     </div>
   )

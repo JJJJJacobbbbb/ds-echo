@@ -54,25 +54,50 @@ export const useMobileViewport = (enabled: boolean) => {
     const viewport = window.visualViewport
     const inputSelector = 'textarea, input:not([type="file"])'
     let animationFrame = 0
+    let openingUntil = 0
+    let openingHeight = Infinity
+    let openingWidth = window.innerWidth
+    let fullHeight = viewport?.height ?? window.innerHeight
+    let settleTimer: ReturnType<typeof setTimeout> | undefined
     const reset = () => {
+      openingUntil = 0
+      clearTimeout(settleTimer)
       frame.style.removeProperty('--app-viewport-height')
       frame.style.removeProperty('--app-viewport-top')
+      frame.style.removeProperty('--dsecho-safe-bottom')
     }
     const update = () => {
       // 双指缩放由浏览器处理，保持当前布局尺寸。
       if (viewport && viewport.scale !== 1) {
         return
       }
-      // 失焦后直接恢复 CSS 的全高布局，不等 Safari 收键盘后的 resize。
+      // 失焦后恢复原有全高布局；输入框自身负责视觉位置的连续过渡。
       if (!document.activeElement?.matches(inputSelector)) {
         reset()
         return
       }
-      frame.style.setProperty(
-        '--app-viewport-height',
-        `${viewport?.height ?? window.innerHeight}px`
-      )
+      let height = viewport?.height ?? window.innerHeight
+      if (window.innerWidth !== openingWidth) {
+        openingUntil = 0
+        openingWidth = window.innerWidth
+        fullHeight = height
+      }
+      fullHeight = Math.max(fullHeight, height)
+      // Android can emit small/full/small heights while reopening the IME.
+      // Stabilize that sequence once, for both page layout and composer motion.
+      if (performance.now() < openingUntil && window.innerWidth === openingWidth) {
+        openingHeight = Math.min(openingHeight, height)
+        height = openingHeight
+      }
+      frame.style.setProperty('--app-viewport-height', `${height}px`)
       frame.style.setProperty('--app-viewport-top', `${viewport?.offsetTop ?? 0}px`)
+      // The IME replaces the navigation inset. Native system-bar updates can
+      // arrive before / after viewport events; don't apply that inset twice.
+      if (height < fullHeight - 80) {
+        frame.style.setProperty('--dsecho-safe-bottom', '0px')
+      } else {
+        frame.style.removeProperty('--dsecho-safe-bottom')
+      }
     }
     const scheduleFrame = () => {
       cancelAnimationFrame(animationFrame)
@@ -85,6 +110,13 @@ export const useMobileViewport = (enabled: boolean) => {
     }
     const onFocusIn = () => {
       if (document.activeElement?.matches(inputSelector)) {
+        openingUntil = performance.now() + 1000
+        openingHeight = viewport?.height ?? window.innerHeight
+        openingWidth = window.innerWidth
+        clearTimeout(settleTimer)
+        // If the user dismisses the IME during opening, release the held height
+        // even when the platform sends no further resize event.
+        settleTimer = setTimeout(schedule, 1000)
         schedule()
       }
     }
@@ -98,6 +130,7 @@ export const useMobileViewport = (enabled: boolean) => {
     document.addEventListener('focusout', scheduleFrame)
     return () => {
       cancelAnimationFrame(animationFrame)
+      clearTimeout(settleTimer)
       viewport?.removeEventListener('resize', schedule)
       viewport?.removeEventListener('scroll', schedule)
       window.removeEventListener('resize', schedule)

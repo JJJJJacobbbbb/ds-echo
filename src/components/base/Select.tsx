@@ -4,6 +4,7 @@ import { createPortal } from 'react-dom'
 import { useAnchoredPosition, useDismiss } from './anchored.js'
 import { IconCheckOutline16, IconChevronDownOutline14 } from './icons.js'
 import styles from './Select.module.css'
+import { usePresence } from './Presence.js'
 
 export type SelectOption<T extends string> = { value: T; label: string; lang?: string }
 
@@ -29,12 +30,13 @@ export const Select = <T extends string>({
   disabled?: boolean
 }) => {
   const [open, setOpen] = useState(false)
+  const { mounted, state } = usePresence(open && !disabled)
   const current = options.find((option) => option.value === value)
   // 菜单贴右侧展开，最多 320px 高，超出在菜单内滚动
   const { anchorRef, floatingRef, position } = useAnchoredPosition<
     HTMLButtonElement,
     HTMLDivElement
-  >(open, { align: 'end', maxHeight: 320, minSpace: 160 })
+  >(mounted, { align: 'end', maxHeight: 320, minSpace: 160 })
   // Esc 只关菜单，不让外层弹窗一起关闭
   useDismiss(open, [anchorRef, floatingRef], () => setOpen(false), { captureEscape: true })
 
@@ -59,13 +61,16 @@ export const Select = <T extends string>({
           <IconChevronDownOutline14 />
         </span>
       </button>
-      {open && !disabled
+      {mounted
         ? createPortal(
             <div
               ref={floatingRef}
               className={styles.menu}
               style={position ?? undefined}
               role="listbox"
+              data-state={state}
+              data-motion-surface
+              {...(!open || disabled ? { inert: '' } : {})}
               aria-label={ariaLabel}
             >
               {options.map((option) => (

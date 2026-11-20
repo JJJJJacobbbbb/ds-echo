@@ -49,6 +49,30 @@ export const MessageList = ({
   const scrollTopRef = useRef(0)
   const restoreScrollRef = useRef<{ messageId: string; top: number } | null>(null)
   const messages = getVisibleMessages(session)
+  // Historical messages stay still. Only messages appended while reading enter once.
+  const entrance = useRef<{
+    sessionId: string
+    count: number
+    known: Set<string>
+    fresh: Set<string>
+  } | null>(null)
+  if (!entrance.current || entrance.current.sessionId !== session.id) {
+    entrance.current = {
+      sessionId: session.id,
+      count: session.messages.length,
+      known: new Set(session.messages.map((message) => message.id)),
+      fresh: new Set(),
+    }
+  }
+  if (entrance.current.count !== session.messages.length) {
+    for (const message of session.messages) {
+      if (!entrance.current.known.has(message.id)) {
+        entrance.current.known.add(message.id)
+        entrance.current.fresh.add(message.id)
+      }
+    }
+    entrance.current.count = session.messages.length
+  }
   const [previousVersions, setPreviousVersions] = useState(() =>
     buildMessageVersions(session, new Map())
   )
@@ -146,32 +170,38 @@ export const MessageList = ({
       <div ref={isMobile ? undefined : scrollRef} className={styles.container}>
         <div ref={isMobile ? scrollRef : undefined} className={styles.scroll}>
           <div ref={contentRef} className={styles.column}>
-            {messages.map((message, index) =>
-              message.role === 'user' ? (
-                <UserMessage
-                  key={message.id}
-                  sessionId={session.id}
-                  message={message}
-                  retryUploadId={uploadRetryId}
-                  isFirst={index === 0}
-                  isLast={index === lastIndex || index === lastIndex - 1}
-                  busy={streaming}
-                  versions={versions.get(message.id) ?? EMPTY_VERSIONS}
-                  onSelectVersion={selectVersion}
-                />
-              ) : (
-                <AssistantMessage
-                  key={message.id}
-                  sessionId={session.id}
-                  message={message}
-                  isLast={index === lastIndex}
-                  streaming={streaming && index === lastIndex}
-                  busy={streaming}
-                  versions={versions.get(message.id) ?? EMPTY_VERSIONS}
-                  onSelectVersion={selectVersion}
-                />
-              )
-            )}
+            {messages.map((message, index) => (
+              <div
+                key={message.id}
+                data-message-id={message.id}
+                data-message-entrance={entrance.current?.fresh.has(message.id)}
+              >
+                {message.role === 'user' ? (
+                  <UserMessage
+                    key={message.id}
+                    sessionId={session.id}
+                    message={message}
+                    retryUploadId={uploadRetryId}
+                    isFirst={index === 0}
+                    isLast={index === lastIndex || index === lastIndex - 1}
+                    busy={streaming}
+                    versions={versions.get(message.id) ?? EMPTY_VERSIONS}
+                    onSelectVersion={selectVersion}
+                  />
+                ) : (
+                  <AssistantMessage
+                    key={message.id}
+                    sessionId={session.id}
+                    message={message}
+                    isLast={index === lastIndex}
+                    streaming={streaming && index === lastIndex}
+                    busy={streaming}
+                    versions={versions.get(message.id) ?? EMPTY_VERSIONS}
+                    onSelectVersion={selectVersion}
+                  />
+                )}
+              </div>
+            ))}
           </div>
         </div>
         {footer}

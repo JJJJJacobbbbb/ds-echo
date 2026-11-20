@@ -1,4 +1,18 @@
+.composer {
+  --composer-photo-size: 86px;
+  --composer-photo-radius: 18px;
+  --composer-photo-continuous-radius: 26px;
+  --composer-photo-gap: 9px;
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  width: 100%;
+}
+
 .wrapper {
+  transition:
+    border-color var(--motion-normal) var(--motion-ease),
+    box-shadow var(--motion-normal) var(--motion-ease);
   --line-height: 24px;
   --input-padding-top: 12px;
   display: flex;
@@ -12,6 +26,14 @@
   border: 1px solid var(--dsw-alias-border-l2-darkmode-thin);
   background: var(--dsw-specific-input-major);
   overflow: hidden;
+}
+
+/* Extend the corner transition into the straight edges without changing layout. */
+@supports (corner-shape: superellipse(1.6)) {
+  .wrapper {
+    border-radius: 36px;
+    corner-shape: superellipse(1.6);
+  }
 }
 
 .session {
@@ -34,19 +56,20 @@
 .attachments {
   display: flex;
   align-items: flex-end;
-  gap: 10px;
+  gap: var(--composer-photo-gap);
   padding: 12px 12px 0;
   overflow-x: auto;
   cursor: default;
 }
 
 .attachment {
+  animation: var(--motion-animation-pop-in) var(--motion-normal) var(--motion-ease) backwards;
   position: relative;
   flex-shrink: 0;
   box-sizing: border-box;
-  width: 64px;
-  height: 64px;
-  border-radius: 16px;
+  width: var(--composer-photo-size);
+  height: var(--composer-photo-size);
+  border-radius: var(--composer-photo-radius);
   border: 1px solid var(--dsw-alias-border-l2);
   overflow: hidden;
   background-color: var(--dsw-alias-bg-skeleton);
@@ -60,6 +83,13 @@
 
   &:hover .remove {
     opacity: 1;
+  }
+}
+
+@supports (corner-shape: superellipse(1.6)) {
+  .attachment {
+    border-radius: var(--composer-photo-continuous-radius);
+    corner-shape: superellipse(1.6);
   }
 }
 
@@ -137,8 +167,8 @@
 
 .remove {
   position: absolute;
-  top: 4px;
-  right: 4px;
+  top: 6px;
+  right: 6px;
   z-index: 1;
   display: flex;
   align-items: center;
@@ -204,6 +234,65 @@
 /* 录音中由频谱接管第一行，隐藏正文但保留高度 */
 .textareaHidden {
   visibility: hidden;
+}
+
+/* Opacity preserves focus and the native IME while the recording overlay is shown. */
+.textareaRecording {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.voiceArea {
+  position: absolute;
+  inset: 0;
+}
+
+.holdButton {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  padding: 8px 16px 0;
+  border: 0;
+  background: transparent;
+  color: var(--dsw-alias-label-primary);
+  font: inherit;
+  font-size: 18px;
+  font-weight: 500;
+  cursor: pointer;
+  touch-action: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+
+.voiceMode .textareaWrapper::after {
+  content: '';
+  position: absolute;
+  bottom: -5px;
+  left: 16px;
+  right: 16px;
+  height: 1px;
+  background: var(--dsw-alias-border-l2);
+  pointer-events: none;
+}
+
+.recording .voiceArea > div {
+  opacity: 0.18;
+  pointer-events: none;
+}
+
+.recording .holdButton {
+  color: var(--dsw-alias-brand-text);
+}
+
+.cancelling .holdButton {
+  color: var(--dsw-alias-state-error-primary);
+}
+
+.cancelling {
+  border-color: var(--dsw-alias-state-error-primary);
 }
 
 @media not all and (min-width: 440px) {
@@ -274,8 +363,11 @@
   white-space: nowrap;
   cursor: pointer;
   user-select: none;
-  transition-property: border, background;
-  transition-duration: 0.2s;
+  transition:
+    background-color var(--motion-fast) var(--motion-ease),
+    border-color var(--motion-fast) var(--motion-ease),
+    color var(--motion-fast) var(--motion-ease),
+    transform var(--motion-fast) var(--motion-ease);
 
   &:hover:not(:disabled) {
     background-color: var(--dsw-alias-interactive-bg-hover);
@@ -319,7 +411,10 @@
   background: var(--dsw-alias-button-primary-fill);
   color: var(--dsw-static-neutral-bluish-00);
   cursor: pointer;
-  transition: background 0.2s ease;
+  transition:
+    background-color var(--motion-fast) var(--motion-ease),
+    opacity var(--motion-fast) var(--motion-ease),
+    transform var(--motion-fast) var(--motion-ease);
 
   &:not(.disabled):hover {
     background: var(--dsw-alias-button-primary-hover);
@@ -331,20 +426,9 @@
   }
 }
 
-/* 附件抽屉打开时把输入框顶到抽屉上方（高度由抽屉写入 --attach-sheet-height） */
-.raised {
-  transform: translateY(calc(-1 * var(--attach-sheet-height, 0px)));
-  transition: transform 200ms cubic-bezier(0.22, 1, 0.36, 1);
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .raised {
-    transition: none;
-  }
-}
-
 /* 加号按钮：不要任何底色/圆圈，颜色用主文字色（之前偏浅看不清） */
 .bareButton {
+  margin-right: 4px;
   background-color: transparent !important;
   color: var(--dsw-alias-label-primary) !important;
 }
@@ -359,4 +443,19 @@
 .remove {
   opacity: 1;
   visibility: visible;
+}
+
+.wrapper:focus-within {
+  border-color: var(--dsw-alias-button-ghost-active-border);
+}
+.bareButton svg {
+  width: 28px;
+  height: 28px;
+  transition: rotate var(--motion-normal) var(--motion-ease);
+}
+.attachActive svg {
+  rotate: 45deg;
+}
+.sendButton > svg {
+  animation: var(--motion-animation-pop-in) var(--motion-fast) var(--motion-ease) backwards;
 }

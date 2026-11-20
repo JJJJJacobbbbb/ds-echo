@@ -1,0 +1,176 @@
+:root {
+  /* Variables preserve shared keyframe names across CSS Modules. */
+  --motion-animation-fade-in: ds-fade-in;
+  --motion-animation-fade-out: ds-fade-out;
+  --motion-animation-rise-in: ds-rise-in;
+  --motion-animation-pop-in: ds-pop-in;
+  --motion-animation-pop-out: ds-pop-out;
+  --motion-animation-sheet-in: ds-sheet-in;
+  --motion-animation-sheet-out: ds-sheet-out;
+  --motion-animation-drawer-in: ds-drawer-in;
+  --motion-animation-drawer-out: ds-drawer-out;
+  --motion-animation-panel-in: ds-panel-in;
+  --motion-animation-panel-out: ds-panel-out;
+
+  --motion-fast: 140ms;
+  --motion-normal: 220ms;
+  --motion-enter: 320ms;
+  --motion-exit: 220ms;
+  --motion-ease: cubic-bezier(0.2, 0, 0, 1);
+  --motion-leave: cubic-bezier(0.4, 0, 1, 1);
+  --ds-transition-duration: var(--motion-fast);
+  --ds-ease-in-out: var(--motion-ease);
+}
+
+body {
+  --ds-transition-duration: var(--motion-fast);
+  --ds-transition-duration-slow: var(--motion-normal);
+  --ds-ease-in-out: var(--motion-ease);
+}
+
+/* Named shared primitives; no animated blur or per-token text effects. */
+@keyframes ds-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@keyframes ds-fade-out {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+@keyframes ds-rise-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@keyframes ds-pop-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+@keyframes ds-pop-out {
+  from {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(4px) scale(0.97);
+  }
+}
+@keyframes ds-sheet-in {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+@keyframes ds-sheet-out {
+  from {
+    transform: translateY(0);
+  }
+  to {
+    transform: translateY(100%);
+  }
+}
+@keyframes ds-drawer-in {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+@keyframes ds-drawer-out {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-100%);
+  }
+}
+@keyframes ds-panel-in {
+  from {
+    opacity: 0;
+    transform: translateX(24px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+@keyframes ds-panel-out {
+  from {
+    opacity: 1;
+    transform: translateX(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateX(24px);
+  }
+}
+
+:where(button, [role='button'], [role='option'], [role='menuitem']) {
+  touch-action: manipulation;
+  transition:
+    transform var(--motion-fast) var(--motion-ease),
+    background-color var(--motion-fast) var(--motion-ease),
+    border-color var(--motion-fast) var(--motion-ease),
+    color var(--motion-fast) var(--motion-ease),
+    opacity var(--motion-fast) var(--motion-ease),
+    box-shadow var(--motion-fast) var(--motion-ease);
+}
+
+:where(button, [role='button']):active:not(:disabled):not([aria-disabled='true']) {
+  transform: scale(0.96);
+}
+
+:where(button, [role='button']):focus-visible {
+  outline: 2px solid var(--dsw-alias-brand-primary);
+  outline-offset: 3px;
+}
+
+/* Exiting surfaces remain visible but cannot trigger a second operation. */
+[data-motion-surface][data-state='closed'] {
+  pointer-events: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --motion-fast: 0ms;
+    --motion-normal: 0ms;
+    --motion-enter: 0ms;
+    --motion-exit: 0ms;
+  }
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-delay: 0ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0ms !important;
+    transition-delay: 0ms !important;
+    scroll-behavior: auto !important;
+  }
+  :where(button, [role='button']):active {
+    transform: none !important;
+  }
+}

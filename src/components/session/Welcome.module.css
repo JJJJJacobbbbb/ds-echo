@@ -17,6 +17,7 @@
 }
 
 .greeting {
+  animation: var(--motion-animation-rise-in) var(--motion-enter) var(--motion-ease) backwards;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -53,6 +54,8 @@
   .greeting {
     flex-shrink: 0;
     margin: auto 0;
+    /* Its center moves half as far as the composer's bottom edge. */
+    translate: 0 calc(var(--composer-offset-y, 0px) / 2);
   }
 
   .caveat {
@@ -67,9 +70,9 @@
   }
 }
 
-
 /* 刚连上 Key、还没有任何会话时的导入引导 */
 .importGuide {
+  animation: var(--motion-animation-rise-in) var(--motion-enter) var(--motion-ease) backwards;
   box-sizing: border-box; /* 不加的话 width:100% 会再加 32px 内边距，右侧溢出被裁 */
   width: 100%;
   max-width: 420px;

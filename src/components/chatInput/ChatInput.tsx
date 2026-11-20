@@ -1,5 +1,6 @@
 import clsx from 'clsx'
 import { memo, useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { flushSync } from 'react-dom'
 import {
   IconGlobeLanguageOutline14,
   IconPlusCircleOutline20,
@@ -29,22 +30,45 @@ import { showToast } from '../base/toastState.js'
 import { useUploads } from '../../services/attachments.js'
 import { AttachSheet } from './AttachSheet.js'
 import { canTakePhoto, takePhoto } from '../../services/camera.js'
-import { hasPhotoAccess, photoAsFile, requestPhotoAccess, type RecentPhoto } from '../../services/photoLibrary.js'
+import {
+  hasPhotoAccess,
+  photoAsFile,
+  requestPhotoAccess,
+  type RecentPhoto,
+} from '../../services/photoLibrary.js'
 import { nativeFilePickerAvailable, pickFiles } from '../../services/filePicker.js'
 import { DraftAttachments } from './DraftAttachments.js'
 import { useVoiceInput } from './useVoiceInput.js'
 import { VoiceButton } from './VoiceButton.js'
+import { useVoiceGesture } from './useVoiceGesture.js'
 import { Spectrum } from './Spectrum.js'
 import { useTranslate } from '../../i18n/index.js'
 import styles from './ChatInput.module.css'
+import { useComposerMotion } from './useComposerMotion.js'
 
 /** 输入框：自适应高度的文本框 + 文件 + 深度思考与智能搜索开关 + 语音输入 + 发送 / 停止 */
 export const ChatInput = memo(function ChatInput({ sessionId }: { sessionId: string | null }) {
+  const [voiceMode, setVoiceMode] = useState(false)
   // 切换目标时释放录音、转写和 DOM 状态；文字与附件由草稿服务保留。
-  return <Input key={sessionId === null ? 'new' : `session:${sessionId}`} sessionId={sessionId} />
+  return (
+    <Input
+      key={sessionId === null ? 'new' : `session:${sessionId}`}
+      sessionId={sessionId}
+      voiceMode={voiceMode}
+      setVoiceMode={setVoiceMode}
+    />
+  )
 })
 
-const Input = ({ sessionId }: { sessionId: string | null }) => {
+const Input = ({
+  sessionId,
+  voiceMode,
+  setVoiceMode,
+}: {
+  sessionId: string | null
+  voiceMode: boolean
+  setVoiceMode: (value: boolean) => void
+}) => {
   const t = useTranslate()
   const draft = useDrafts((state) => state.drafts.get(sessionId) ?? EMPTY_DRAFT)
   const { text, attachments } = draft
@@ -63,6 +87,7 @@ const Input = ({ sessionId }: { sessionId: string | null }) => {
   const cameraInputRef = useRef<HTMLInputElement>(null)
   const albumInputRef = useRef<HTMLInputElement>(null)
   const [attachOpen, setAttachOpen] = useState(false)
+  const motion = useComposerMotion(isMobile, attachOpen)
   // 面板里已选中的照片 id；与输入框里的附件必须保持一致
   const [selectedPhotoIds, setSelectedPhotoIds] = useState<string[]>([])
   const textareaRef = useRef<HTMLTextAreaElement>(null)
@@ -140,7 +165,16 @@ const Input = ({ sessionId }: { sessionId: string | null }) => {
       setAttachOpen(false)
     }
     document.addEventListener('pointerdown', onPointerDown, true)
-    return () => document.removeEventListener('pointerdown', onPointerDown, true)
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setAttachOpen(false)
+      }
+    }
+    document.addEventListener('keydown', onKeyDown)
+    return () => {
+      document.removeEventListener('pointerdown', onPointerDown, true)
+      document.removeEventListener('keydown', onKeyDown)
+    }
   }, [attachOpen])
 
   // 缩略图与已加入草稿的 File 对应关系：取消选中时按 File 引用找回附件并移除
@@ -166,7 +200,7 @@ const Input = ({ sessionId }: { sessionId: string | null }) => {
       current.filter((id) => {
         const file = photoFiles.current.get(id)
         return file ? !files.includes(file) : false
-      }),
+      })
     )
     for (const [id, file] of photoFiles.current) {
       if (files.includes(file)) {
@@ -251,18 +285,91 @@ const Input = ({ sessionId }: { sessionId: string | null }) => {
   )
   const dragging = useFileDrop(acceptFiles)
 
-  /** 转写结果插入到光标处，并把光标移到插入内容之后 */
-  const voice = useVoiceInput((transcript) => {
-    const textarea = textareaRef.current
-    const current = getDraft(sessionId).text
-    const start = textarea?.selectionStart ?? current.length
-    const end = textarea?.selectionEnd ?? current.length
-    setText(current.slice(0, start) + transcript + current.slice(end))
-    requestAnimationFrame(() => {
-      textarea?.focus({ preventScroll: true })
-      textarea?.setSelectionRange(start + transcript.length, start + transcript.length)
-    })
+  /** Voice release transcribes and submits. Keep the text if submission is blocked. */
+  const cancelAtLimit = useRef(false)
+  const voice = useVoiceInput(
+    (transcript) => {
+      const current = getDraft(sessionId).text
+      setText(current ? `${current}\n${transcript}` : transcript)
+      const state = useChatStore.getState()
+      if (
+        !current &&
+        !state.importingHistory &&
+        !(sessionId !== null && Object.hasOwn(state.streaming, sessionId)) &&
+        ensureApiKey()
+      ) {
+        if (sendMessage(sessionId)) {
+          if (isMobile) {
+            motion.begin('closed')
+            textareaRef.current?.blur()
+          }
+          setAttachOpen(false)
+          stopReadAloud()
+        } else {
+          setVoiceMode(false)
+        }
+      } else {
+        setVoiceMode(false)
+      }
+    },
+    () => cancelAtLimit.current
+  )
+
+  const switchToVoice = () => {
+    motion.begin('closed')
+    textareaRef.current?.blur()
+    setAttachOpen(false)
+    setVoiceMode(true)
+  }
+  const switchToKeyboard = () => {
+    motion.begin('keyboard')
+    setAttachOpen(false)
+    flushSync(() => setVoiceMode(false))
+    // Keep the textarea mounted and focus inside the user gesture (iOS included).
+    textareaRef.current?.focus({ preventScroll: true })
+  }
+  const startVoice = () => {
+    if (
+      useChatStore.getState().importingHistory ||
+      streaming ||
+      getDraft(sessionId).text.trim() ||
+      !ensureApiKey()
+    ) {
+      return
+    }
+    // Recording preserves the current keyboard / attachment panel and its position.
+    // Only a successful send closes it; cancellation leaves the layout untouched.
+    stopReadAloud()
+    void voice.start()
+  }
+  const voiceDisabled =
+    importingHistory || streaming || !voice.available || voice.status === 'transcribing'
+  const smallGesture = useVoiceGesture({
+    disabled: voiceDisabled,
+    start: () => {
+      if (!voiceMode) {
+        startVoice()
+      }
+    },
+    finish: () => void voice.finish(),
+    cancel: voice.cancel,
+    tap: voiceMode ? switchToKeyboard : switchToVoice,
   })
+  const holdGesture = useVoiceGesture({
+    disabled: voiceDisabled,
+    start: startVoice,
+    finish: () => void voice.finish(),
+    cancel: voice.cancel,
+    tap: () => {},
+  })
+  const cancelling = smallGesture.cancelling || holdGesture.cancelling
+  cancelAtLimit.current = cancelling
+
+  useEffect(() => {
+    if (text.trim()) {
+      setVoiceMode(false)
+    }
+  }, [text, setVoiceMode])
 
   // 欢迎页导入后会话 ID 不变，不能依赖卸载取消语音；订阅开始事件也覆盖快速完成的导入。
   const cancelVoice = voice.cancel
@@ -277,7 +384,9 @@ const Input = ({ sessionId }: { sessionId: string | null }) => {
   )
 
   // 移动端录音时用频谱替代输入框内容
-  const recording = voice.status === 'recording'
+  const recording = voice.status === 'recording' || voice.status === 'starting'
+  const voiceBusy = voice.status !== 'idle'
+  const showSend = !voiceMode && (text.trim().length > 0 || attachments.length > 0)
 
   // 排队、上传中或上传失败的附件都留在输入框，全部上传成功后才能发送
   const canSend = !importingHistory && !streaming && voice.status === 'idle' && draftReady
@@ -303,171 +412,235 @@ const Input = ({ sessionId }: { sessionId: string | null }) => {
   }
 
   return (
-    <>
-    <div
-      ref={wrapperRef}
-      className={clsx(
-        styles.wrapper,
-        sessionId === null ? styles.home : styles.session,
-      )}
-      onClick={(event) => {
-        if (event.target === event.currentTarget) {
-          textareaRef.current?.focus({ preventScroll: true })
-        }
-      }}
-    >
-      <DraftAttachments items={attachments} onRetry={retryFile} onRemove={removeFile} />
-      <div className={styles.textareaWrapper}>
-        <textarea
-          ref={textareaRef}
-          className={clsx(styles.textarea, recording && isMobile && styles.textareaHidden)}
-          placeholder={t('chatInputPlaceholderChat')}
-          rows={2}
-          // 移动端不自动聚焦，避免一打开就弹出键盘
-          autoFocus={!isMobile}
-          disabled={importingHistory}
-          value={text}
-          onChange={(event) => setText(event.target.value)}
-          onMouseDown={(event) => {
-            // 点输入框就收起附件面板，并把焦点还给输入框（随后系统弹出键盘）
-            setAttachOpen(false)
-            // 首次点击时手动聚焦，避免 Safari 把整个页面滚到输入框位置。
-            if (isMobile && event.button === 0 && document.activeElement !== event.currentTarget) {
-              event.preventDefault()
-              event.currentTarget.focus({ preventScroll: true })
-            }
-          }}
-          onFocus={() => setAttachOpen(false)}
-          onKeyDown={(event) => {
-            if (event.key === 'Enter' && !event.shiftKey && !event.nativeEvent.isComposing) {
-              event.preventDefault()
-              send()
-            }
-          }}
-          onPaste={(event) => {
-            const files = Array.from(event.clipboardData.files)
-            if (files.length > 0) {
-              event.preventDefault()
-              acceptFiles(files)
-            }
-          }}
-        />
-        {recording && isMobile ? <Spectrum getAnalyser={voice.getAnalyser} /> : null}
-        <div className={styles.mirror} aria-hidden>
-          {`${text}\n`}
-        </div>
-      </div>
-      <div className={styles.functionRow}>
-        {/* 深度思考 / 智能搜索开关，tooltip 在按钮上方 */}
-        <div ref={togglesRef} className={styles.toggles}>
-          <Tooltip content={t('deactivatedThinkTooltip')}>
-            <button
-              type="button"
-              className={clsx(styles.toggle, thinking && styles.selected)}
-              aria-label={t('thinkingSwitch')}
-              aria-pressed={thinking}
-              onClick={() => setThinking(!thinking)}
-            >
-              <IconThinkOutline14 />
-              <span className={styles.toggleLabel}>{t('thinkingSwitch')}</span>
-            </button>
-          </Tooltip>
-          <Tooltip content={t('deactivatedSearchTooltip')}>
-            <button
-              type="button"
-              className={clsx(styles.toggle, search && styles.selected)}
-              aria-label={t('search')}
-              aria-pressed={search}
-              onClick={() => setSearch(!search)}
-            >
-              <IconGlobeLanguageOutline14 />
-              <span className={styles.toggleLabel}>{t('search')}</span>
-            </button>
-          </Tooltip>
-        </div>
-        <div className={styles.right}>
-          <VoiceButton
-            status={voice.status}
-            disabled={!voice.available}
-            seconds={voice.seconds}
-            onClick={() => {
+    <div ref={motion.ref} className={styles.composer}>
+      <div
+        ref={wrapperRef}
+        className={clsx(
+          styles.wrapper,
+          sessionId === null ? styles.home : styles.session,
+          voiceMode && styles.voiceMode,
+          recording && styles.recording,
+          cancelling && recording && styles.cancelling
+        )}
+        onClick={(event) => {
+          if (event.target === event.currentTarget && !voiceMode && !voiceBusy) {
+            textareaRef.current?.focus({ preventScroll: true })
+          }
+        }}
+      >
+        <DraftAttachments items={attachments} onRetry={retryFile} onRemove={removeFile} />
+        <div className={styles.textareaWrapper}>
+          <textarea
+            ref={textareaRef}
+            className={clsx(
+              styles.textarea,
+              voiceMode && styles.textareaHidden,
+              !voiceMode && voiceBusy && styles.textareaRecording
+            )}
+            tabIndex={voiceMode ? -1 : undefined}
+            aria-hidden={voiceMode}
+            placeholder={t('chatInputPlaceholderChat')}
+            rows={2}
+            // 移动端不自动聚焦，避免一打开就弹出键盘
+            autoFocus={!isMobile}
+            disabled={importingHistory}
+            value={text}
+            onChange={(event) => {
+              if (!voiceBusy) {
+                setText(event.target.value)
+              }
+            }}
+            onBeforeInput={(event) => {
+              if (voiceBusy) {
+                event.preventDefault()
+              }
+            }}
+            onMouseDown={(event) => {
+              // 点输入框就收起附件面板，并把焦点还给输入框（随后系统弹出键盘）
+              motion.begin('keyboard')
+              setAttachOpen(false)
+              // 首次点击时手动聚焦，避免 Safari 把整个页面滚到输入框位置。
               if (
-                voice.status !== 'idle' ||
-                (!useChatStore.getState().importingHistory && ensureApiKey())
+                isMobile &&
+                event.button === 0 &&
+                document.activeElement !== event.currentTarget
               ) {
-                void voice.toggle()
+                event.preventDefault()
+                event.currentTarget.focus({ preventScroll: true })
+              }
+            }}
+            onFocus={() => {
+              setVoiceMode(false)
+              motion.begin('keyboard')
+              setAttachOpen(false)
+            }}
+            onKeyDown={(event) => {
+              if (voiceBusy) {
+                event.preventDefault()
+                return
+              }
+              if (event.key === 'Enter' && !event.shiftKey && !event.nativeEvent.isComposing) {
+                event.preventDefault()
+                send()
+              }
+            }}
+            onPaste={(event) => {
+              if (voiceBusy) {
+                event.preventDefault()
+                return
+              }
+              const files = Array.from(event.clipboardData.files)
+              if (files.length > 0) {
+                event.preventDefault()
+                acceptFiles(files)
               }
             }}
           />
-          <IconButton
-            size="m"
-            className={styles.bareButton}
-            icon={<IconPlusCircleOutline20 />}
-            tooltip={t('uploadFile')}
-            disabled={importingHistory}
-            onClick={() => ensureApiKey() && setAttachOpen(true)}
-          />
-          {/* 不设 accept：系统文件管理器会隐藏不匹配的文件，与原生「文件」入口不一致 */}
-          <input
-            ref={fileInputRef}
-            type="file"
-            multiple
-            hidden
-            onChange={(event) => {
-              acceptFiles(Array.from(event.target.files ?? []))
-              event.target.value = ''
-            }}
-          />
-          {/* capture 让安卓直接调起相机；桌面端没有这个概念，所以菜单里不显示「拍照」 */}
-          <input
-            ref={cameraInputRef}
-            type="file"
-            hidden
-            accept="image/*"
-            capture="environment"
-            onChange={(event) => {
-              acceptFiles(Array.from(event.target.files ?? []))
-              event.target.value = ''
-            }}
-          />
-          <input
-            ref={albumInputRef}
-            type="file"
-            multiple
-            hidden
-            accept="image/*"
-            onChange={(event) => {
-              acceptFiles(Array.from(event.target.files ?? []))
-              event.target.value = ''
-            }}
-          />
-          {streaming && sessionId ? (
-            <button
-              type="button"
-              className={styles.sendButton}
-              aria-label={t('chatInputStopButtonTooltip')}
-              onClick={() => {
-                stopReadAloud()
-                stopReply(sessionId)
-              }}
-            >
-              <IconStopFill16 />
-            </button>
-          ) : (
-            <button
-              type="button"
-              className={clsx(styles.sendButton, !canSend && styles.disabled)}
-              aria-label={t('send')}
-              aria-disabled={!canSend}
-              onClick={send}
-            >
-              <IconSendOutline16 />
-            </button>
-          )}
+          {voiceMode || voiceBusy ? (
+            <div className={styles.voiceArea}>
+              {recording ? <Spectrum getAnalyser={voice.getAnalyser} /> : null}
+              <button
+                type="button"
+                className={styles.holdButton}
+                aria-label={t('voiceInputHold')}
+                aria-disabled={voiceDisabled}
+                {...holdGesture.handlers}
+              >
+                <span role="status" aria-live="polite">
+                  {t(
+                    voice.status === 'starting'
+                      ? 'voiceInputStarting'
+                      : voice.status === 'transcribing'
+                        ? 'voiceInputTranscribing'
+                        : recording
+                          ? cancelling
+                            ? 'voiceInputReleaseCancel'
+                            : 'voiceInputReleaseSend'
+                          : 'voiceInputHold'
+                  )}
+                </span>
+              </button>
+            </div>
+          ) : null}
+          <div className={styles.mirror} aria-hidden>
+            {`${text}\n`}
+          </div>
         </div>
+        <div className={styles.functionRow}>
+          {/* 深度思考 / 智能搜索开关，tooltip 在按钮上方 */}
+          <div ref={togglesRef} className={styles.toggles}>
+            <Tooltip content={t('deactivatedThinkTooltip')}>
+              <button
+                type="button"
+                className={clsx(styles.toggle, thinking && styles.selected)}
+                aria-label={t('thinkingSwitch')}
+                aria-pressed={thinking}
+                onClick={() => setThinking(!thinking)}
+              >
+                <IconThinkOutline14 />
+                <span className={styles.toggleLabel}>{t('thinkingSwitch')}</span>
+              </button>
+            </Tooltip>
+            <Tooltip content={t('deactivatedSearchTooltip')}>
+              <button
+                type="button"
+                className={clsx(styles.toggle, search && styles.selected)}
+                aria-label={t('search')}
+                aria-pressed={search}
+                onClick={() => setSearch(!search)}
+              >
+                <IconGlobeLanguageOutline14 />
+                <span className={styles.toggleLabel}>{t('search')}</span>
+              </button>
+            </Tooltip>
+          </div>
+          <div className={styles.right}>
+            <IconButton
+              size="m"
+              className={clsx(styles.bareButton, attachOpen && styles.attachActive)}
+              icon={<IconPlusCircleOutline20 />}
+              tooltip={t('uploadFile')}
+              disabled={importingHistory}
+              aria-expanded={attachOpen}
+              aria-controls="chat-attach-sheet"
+              onMouseDown={(event) => event.preventDefault()}
+              onClick={() => {
+                if (voiceBusy || !ensureApiKey()) {
+                  return
+                }
+                motion.begin(attachOpen ? 'closed' : 'panel')
+                textareaRef.current?.blur()
+                setAttachOpen((value) => !value)
+              }}
+            />
+            {/* 不设 accept：系统文件管理器会隐藏不匹配的文件，与原生「文件」入口不一致 */}
+            <input
+              ref={fileInputRef}
+              type="file"
+              multiple
+              hidden
+              onChange={(event) => {
+                acceptFiles(Array.from(event.target.files ?? []))
+                event.target.value = ''
+              }}
+            />
+            {/* capture 让安卓直接调起相机；桌面端没有这个概念，所以菜单里不显示「拍照」 */}
+            <input
+              ref={cameraInputRef}
+              type="file"
+              hidden
+              accept="image/*"
+              capture="environment"
+              onChange={(event) => {
+                acceptFiles(Array.from(event.target.files ?? []))
+                event.target.value = ''
+              }}
+            />
+            <input
+              ref={albumInputRef}
+              type="file"
+              multiple
+              hidden
+              accept="image/*"
+              onChange={(event) => {
+                acceptFiles(Array.from(event.target.files ?? []))
+                event.target.value = ''
+              }}
+            />
+            {streaming && sessionId ? (
+              <button
+                type="button"
+                className={styles.sendButton}
+                aria-label={t('chatInputStopButtonTooltip')}
+                onClick={() => {
+                  stopReadAloud()
+                  stopReply(sessionId)
+                }}
+              >
+                <IconStopFill16 />
+              </button>
+            ) : showSend ? (
+              <button
+                type="button"
+                className={clsx(styles.sendButton, !canSend && styles.disabled)}
+                aria-label={t('send')}
+                aria-disabled={!canSend}
+                onClick={send}
+              >
+                <IconSendOutline16 />
+              </button>
+            ) : (
+              <VoiceButton
+                keyboard={voiceMode}
+                disabled={voiceDisabled || recording}
+                busy={voice.status === 'transcribing'}
+                handlers={smallGesture.handlers}
+              />
+            )}
+          </div>
+        </div>
+        {dragging ? <DragMask /> : null}
       </div>
-      {dragging ? <DragMask /> : null}
-    </div>
       {/* 面板在输入框下方：与官方一致，输入框在上、面板像键盘一样从底部顶起 */}
       <AttachSheet
         open={attachOpen}
@@ -480,6 +653,6 @@ const Input = ({ sessionId }: { sessionId: string | null }) => {
         onSelectPhoto={(photo) => void selectPhoto(photo)}
         onUnselectPhoto={unselectPhoto}
       />
-    </>
+    </div>
   )
 }

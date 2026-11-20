@@ -1,4 +1,5 @@
 .panel {
+  animation: var(--motion-animation-panel-in) var(--motion-enter) var(--motion-ease) backwards;
   display: flex;
   flex-direction: column;
   flex-shrink: 0;
@@ -62,5 +63,11 @@
     width: auto;
     max-width: none;
     border-left: none;
+    padding-top: var(--dsecho-safe-top);
+    padding-bottom: var(--dsecho-safe-bottom);
   }
+}
+
+.panel[data-state='closed'] {
+  animation: var(--motion-animation-panel-out) var(--motion-exit) var(--motion-leave) both;
 }

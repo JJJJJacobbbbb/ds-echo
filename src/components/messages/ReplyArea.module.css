@@ -3,6 +3,11 @@
 }
 
 .title {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  font: inherit;
+  text-align: start;
   display: flex;
   align-items: center;
   height: 34px;
@@ -15,6 +20,31 @@
   &:hover {
     color: var(--dsw-alias-label-primary);
   }
+}
+
+.chevron {
+  display: flex;
+  rotate: -90deg;
+  transition: rotate var(--motion-normal) var(--motion-ease);
+}
+.chevron[data-open='true'] {
+  rotate: 0deg;
+}
+.collapse {
+  display: grid;
+  grid-template-rows: 0fr;
+  opacity: 0;
+  transition:
+    grid-template-rows var(--motion-normal) var(--motion-ease),
+    opacity var(--motion-normal) var(--motion-ease);
+}
+.collapse[data-open='true'] {
+  grid-template-rows: 1fr;
+  opacity: 1;
+}
+.collapseInner {
+  min-height: 0;
+  overflow: hidden;
 }
 
 .titleIcon {

@@ -5,7 +5,6 @@ import {
   IconBrowseOutline16,
   IconBrowseWarningOutline16,
   IconChevronDownOutline14,
-  IconChevronRightOutline14,
   IconCheckedOutline14,
   IconCloseFill14,
   IconLinkOutline16,
@@ -78,28 +77,42 @@ export const ReplyArea = memo(function ReplyArea({
   return (
     <div className={styles.area}>
       {title ? (
-        <div className={styles.title} onClick={() => setOpen((value) => !value)}>
+        <button
+          type="button"
+          className={styles.title}
+          aria-expanded={open}
+          onClick={() => setOpen((value) => !value)}
+        >
           <span className={clsx(styles.titleIcon, stopped && styles.stoppedIcon)}>
             <IconThinkOutline16 />
           </span>
           <span className={clsx(styles.titleText, titleActive && styles.shimmer)}>{title}</span>
-          {open ? <IconChevronDownOutline14 /> : <IconChevronRightOutline14 />}
-        </div>
+          <span className={styles.chevron} data-open={open}>
+            <IconChevronDownOutline14 />
+          </span>
+        </button>
       ) : null}
-      {open || !title ? (
-        <div className={styles.steps}>
-          {view.steps.map((step, index) => (
-            <StepItem
-              key={stepKey(step, index)}
-              step={step}
-              message={message}
-              sources={view.sources}
-              streaming={streaming}
-              isLast={index === view.steps.length - 1}
-            />
-          ))}
+      <div
+        className={styles.collapse}
+        data-open={open || !title}
+        aria-hidden={!open && !!title}
+        {...(!open && title ? { inert: '' } : {})}
+      >
+        <div className={styles.collapseInner}>
+          <div className={styles.steps}>
+            {view.steps.map((step, index) => (
+              <StepItem
+                key={stepKey(step, index)}
+                step={step}
+                message={message}
+                sources={view.sources}
+                streaming={streaming}
+                isLast={index === view.steps.length - 1}
+              />
+            ))}
+          </div>
         </div>
-      ) : null}
+      </div>
     </div>
   )
 })

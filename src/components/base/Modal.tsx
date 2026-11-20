@@ -4,6 +4,8 @@ import { createPortal } from 'react-dom'
 import { useTranslate } from '../../i18n/index.js'
 import { IconCloseOutline16 } from './icons.js'
 import { IconButton } from './IconButton.js'
+import { useMotionState } from './Presence.js'
+import { useFocusScope } from './focusScope.js'
 import styles from './Modal.module.css'
 
 /** 当前打开的弹窗，后打开的在末尾；叠放时 Esc 只关闭最上层 */
@@ -31,6 +33,9 @@ export const Modal = ({
 }) => {
   const t = useTranslate()
   const titleId = useId()
+  const motionState = useMotionState()
+  const contentRef = useRef<HTMLDivElement>(null)
+  useFocusScope(contentRef)
   const onCloseRef = useRef(onClose)
   onCloseRef.current = onClose
   useEffect(() => {
@@ -38,6 +43,7 @@ export const Modal = ({
     openModals.push(token)
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape' && openModals.at(-1) === token) {
+        event.stopPropagation()
         onCloseRef.current()
       }
     }
@@ -51,10 +57,16 @@ export const Modal = ({
   return createPortal(
     <div
       className={styles.overlay}
+      data-state={motionState}
+      data-motion-surface
+      data-modal-overlay
+      {...(motionState === 'closed' ? { inert: '' } : {})}
       onMouseDown={(event) => event.target === event.currentTarget && onClose()}
     >
       <div
         className={clsx(styles.content, className)}
+        ref={contentRef}
+        tabIndex={-1}
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}

@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom'
 import { useIsMobile } from '../../app/viewport.js'
 import { useAnchoredPosition, useDelayedOpen } from './anchored.js'
 import styles from './Tooltip.module.css'
+import { usePresence } from './Presence.js'
 
 export type TooltipPlacement = 'top' | 'bottom'
 
@@ -23,8 +24,10 @@ export const Tooltip = ({
 }) => {
   const isMobile = useIsMobile()
   const { open, setOpen, schedule, cancel } = useDelayedOpen()
+  const visible = open && !isMobile && Boolean(content)
+  const { mounted, state } = usePresence(visible)
   const { anchorRef, floatingRef, position } = useAnchoredPosition<HTMLSpanElement, HTMLDivElement>(
-    open,
+    mounted,
     { side: placement, align: 'center', measureFirstChild: true, measureKey: content }
   )
 
@@ -40,8 +43,6 @@ export const Tooltip = ({
     return () => window.removeEventListener('scroll', onScroll, true)
   }, [open, setOpen])
 
-  const visible = open && !isMobile && Boolean(content)
-
   return (
     <>
       <span
@@ -52,11 +53,12 @@ export const Tooltip = ({
       >
         {children}
       </span>
-      {visible
+      {mounted
         ? createPortal(
             <div
               ref={floatingRef}
               role="tooltip"
+              data-state={state}
               className={styles.tooltip}
               style={position ?? { top: 0, left: 0, visibility: 'hidden' }}
             >

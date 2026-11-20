@@ -3,6 +3,7 @@ import { useState, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 import { useAnchoredPosition, useDismiss } from './anchored.js'
 import styles from './Menu.module.css'
+import { usePresence } from './Presence.js'
 
 export type MenuOption = {
   key: string
@@ -21,26 +22,30 @@ export const Menu = ({
   children: (props: { open: boolean; toggle: () => void }) => ReactNode
 }) => {
   const [open, setOpen] = useState(false)
+  const { mounted, state } = usePresence(open)
   const close = () => setOpen(false)
   // 左侧对齐并再左移 5px，让菜单文字与触发元素图标对齐
   const { anchorRef, floatingRef, position } = useAnchoredPosition<HTMLSpanElement, HTMLDivElement>(
-    open,
+    mounted,
     { align: 'start', alignOffset: -5, offset: 4 }
   )
-  useDismiss(open, [anchorRef, floatingRef], close)
+  useDismiss(open, [anchorRef, floatingRef], close, { captureEscape: true })
 
   return (
     <>
       <span ref={anchorRef} className={styles.anchor}>
         {children({ open, toggle: () => setOpen((value) => !value) })}
       </span>
-      {open
+      {mounted
         ? createPortal(
             <div
               ref={floatingRef}
               className={styles.menu}
               style={position ?? undefined}
               role="menu"
+              data-state={state}
+              data-motion-surface
+              {...(!open ? { inert: '' } : {})}
             >
               {options.map((option) => (
                 <div

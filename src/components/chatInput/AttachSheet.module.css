@@ -9,7 +9,37 @@
   margin-top: 10px;
   padding: 0;
   background: transparent;
-  animation: fade-in 160ms ease-out;
+  opacity: 1;
+  transform: translateY(0);
+  transition:
+    opacity var(--motion-normal) var(--motion-ease),
+    transform var(--motion-enter) var(--motion-ease);
+}
+
+.reveal {
+  display: grid;
+  flex-shrink: 0;
+  width: 100%;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows var(--motion-exit) var(--motion-ease);
+}
+
+.reveal[data-state='open'] {
+  grid-template-rows: 1fr;
+  transition-duration: var(--motion-enter);
+}
+
+.clip {
+  min-height: 0;
+  min-width: 0;
+  overflow: hidden;
+}
+.reveal[data-state='closed'] .panel {
+  opacity: 0;
+  transform: translateY(12px);
+}
+.reveal[data-state='open'] .panel {
+  animation: var(--motion-animation-rise-in) var(--motion-enter) var(--motion-ease) backwards;
 }
 
 /* 最近照片：横排大图，无边框、无底板 */
@@ -21,7 +51,10 @@
 
 .thumbnails {
   display: flex;
-  gap: 10px;
+  box-sizing: border-box;
+  min-width: 0;
+  width: 100%;
+  gap: var(--composer-photo-gap, 9px);
   overflow-x: auto;
   padding: 2px;
   scrollbar-width: none;
@@ -38,15 +71,37 @@
 
 .thumbnail {
   display: block;
-  width: 88px;
-  height: 88px;
+  width: var(--composer-photo-size, 86px);
+  height: var(--composer-photo-size, 86px);
   padding: 0;
   border: none;
-  border-radius: 12px;
+  border-radius: var(--composer-photo-radius, 18px);
   overflow: hidden;
   background: transparent;
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
+}
+
+@supports (corner-shape: superellipse(1.6)) {
+  .thumbnail {
+    border-radius: var(--composer-photo-continuous-radius, 26px);
+    corner-shape: superellipse(1.6);
+  }
+}
+
+@media (max-width: 767px) {
+  .reveal {
+    width: calc(100% + 32px);
+    margin-inline: -16px;
+  }
+
+  .thumbnails {
+    padding-inline: 21px;
+  }
+
+  .options {
+    margin-inline: 21px;
+  }
 }
 
 .thumbnail img {
@@ -58,6 +113,9 @@
 
 /* 选中标记：空心圆环 → 选中后白色实心圆 + 黑色对号 */
 .check {
+  transition:
+    background-color var(--motion-fast) var(--motion-ease),
+    border-color var(--motion-fast) var(--motion-ease);
   position: absolute;
   top: 4px;
   right: 4px;
@@ -117,13 +175,6 @@
 .label {
   font-size: 14px;
   line-height: 20px;
-}
-
-@keyframes fade-in {
-  from {
-    opacity: 0;
-    transform: translateY(6px);
-  }
 }
 
 @media (prefers-reduced-motion: reduce) {

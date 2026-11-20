@@ -14,6 +14,21 @@
   min-width: 0;
 }
 
+.desktopSider {
+  display: grid;
+  flex-shrink: 0;
+  grid-template-columns: 261px;
+  transition: grid-template-columns var(--motion-enter) var(--motion-ease);
+}
+
+.desktopSider[data-collapsed='true'] {
+  grid-template-columns: 0px;
+}
+.desktopSiderClip {
+  min-width: 0;
+  overflow: hidden;
+}
+
 .content {
   position: relative;
   flex: 1;

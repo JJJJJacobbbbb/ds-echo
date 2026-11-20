@@ -33,13 +33,21 @@ import {
 import { useTranslate, type TranslationKey, type TranslationMessage } from '../../i18n/index.js'
 import { Button } from '../base/Button.js'
 import { Modal } from '../base/Modal.js'
+import { Presence } from '../base/Presence.js'
 import { Select } from '../base/Select.js'
 import { showToast } from '../base/toastState.js'
 import { saveFileForUser } from '../../services/fileSave.js'
 import { ApiKeyConfirm, ApiKeyField, useApiKeyEditor } from './ApiKeyField.js'
 import { AccountPanel } from './AccountPanel.js'
 import { DonateDialog } from './DonateDialog.js'
-import { LANDING_PASSWORD, LANDING_URL, RELEASES_URL, checkForUpdate, currentVersion, type UpdateResult } from '../../services/update.js'
+import {
+  LANDING_PASSWORD,
+  LANDING_URL,
+  RELEASES_URL,
+  checkForUpdate,
+  currentVersion,
+  type UpdateResult,
+} from '../../services/update.js'
 import { openTrustedUrl } from '../../services/external.js'
 import { canInstallInApp, installApk } from '../../services/apkInstaller.js'
 import { closeSettings, useSettingsDialog, type SettingsSection } from './settingsDialogState.js'
@@ -51,7 +59,11 @@ import styles from './Settings.module.css'
  */
 export const SettingsDialog = () => {
   const open = useSettingsDialog((state) => state.open)
-  return open ? <SettingsContent /> : null
+  return (
+    <Presence present={open}>
+      <SettingsContent />
+    </Presence>
+  )
 }
 
 const sections: { value: SettingsSection; label: TranslationKey; icon: ReactNode }[] = [
@@ -110,7 +122,7 @@ const SettingsContent = () => {
             </button>
           ))}
         </div>
-        <div role="tabpanel" className={styles.content} ref={contentRef}>
+        <div key={section} role="tabpanel" className={styles.content} ref={contentRef}>
           {section === 'general' ? (
             <>
               <ThemeSetting />
@@ -146,8 +158,12 @@ const SettingsContent = () => {
           )}
         </div>
       </Modal>
-      {historyImport.preview ? <ImportConfirm historyImport={historyImport} /> : null}
-      {historyDelete.opened ? <DeleteAllConfirm historyDelete={historyDelete} /> : null}
+      <Presence present={!!historyImport.preview}>
+        <ImportConfirm historyImport={historyImport} />
+      </Presence>
+      <Presence present={historyDelete.opened}>
+        <DeleteAllConfirm historyDelete={historyDelete} />
+      </Presence>
     </>
   )
 }
@@ -498,7 +514,9 @@ const useHistoryImport = () => {
     try {
       setPreview(
         await stageHistoryImport(file, ({ doneBytes, totalBytes }) => {
-          setPercent(totalBytes > 0 ? Math.min(99, Math.round((doneBytes / totalBytes) * 100)) : null)
+          setPercent(
+            totalBytes > 0 ? Math.min(99, Math.round((doneBytes / totalBytes) * 100)) : null
+          )
         })
       )
     } catch {
@@ -641,11 +659,6 @@ const ExportHistory = ({ disabled }: { disabled: boolean }) => {
   )
 }
 
-
-
-
-
-
 /** 版本与更新：只在用户点击时请求 GitHub，不在后台自动检查（隐私） */
 const UpdateSetting = () => {
   const t = useTranslate()
@@ -697,7 +710,10 @@ const UpdateSetting = () => {
       }
       status={status}
       action={
-        state && state !== 'checking' && state !== 'installing' && state.status === 'unavailable' ? (
+        state &&
+        state !== 'checking' &&
+        state !== 'installing' &&
+        state.status === 'unavailable' ? (
           <>
             {LANDING_URL ? (
               <Button
@@ -718,7 +734,10 @@ const UpdateSetting = () => {
               {t('updateOpenReleases')}
             </Button>
           </>
-        ) : state && state !== 'checking' && state !== 'installing' && state.status === 'outdated' ? (
+        ) : state &&
+          state !== 'checking' &&
+          state !== 'installing' &&
+          state.status === 'outdated' ? (
           <Button
             variant="primary"
             size="m"
@@ -771,12 +790,19 @@ const DonateSetting = () => {
         label={t('donateSectionLabel')}
         status={null}
         action={
-          <Button variant="outlined" size="m" className={styles.cellButton} onClick={() => setOpen(true)}>
+          <Button
+            variant="outlined"
+            size="m"
+            className={styles.cellButton}
+            onClick={() => setOpen(true)}
+          >
             {t('donateAction')}
           </Button>
         }
       />
-      {open ? <DonateDialog onClose={() => setOpen(false)} /> : null}
+      <Presence present={open}>
+        <DonateDialog onClose={() => setOpen(false)} />
+      </Presence>
     </>
   )
 }
